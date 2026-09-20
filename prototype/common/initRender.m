@@ -11,15 +11,27 @@ scene = uavScenario( ...
     'UpdateRate', round(1 / cfg.sim.dt), ...
     'StopTime',   cfg.sim.tEnd);
 
-% ---- Colour palette (strictly unique per UAV, electric hues) ----
-uavColors = [
+% ---- Colour palette (supports up to 10 UAVs with electric hues) ----
+palette = [
     0.00 0.85 1.00;   % UAV1 - Electric Cyan
     1.00 0.48 0.05;   % UAV2 - Bright Orange
     0.72 0.38 1.00;   % UAV3 - Vivid Violet
     1.00 0.18 0.65;   % UAV4 - Hot Pink
+    0.20 0.85 0.30;   % UAV5 - Lime Green
+    1.00 0.85 0.10;   % UAV6 - Amber Yellow
+    0.30 0.60 1.00;   % UAV7 - Sky Blue
+    0.95 0.30 0.40;   % UAV8 - Coral Red
+    0.10 0.90 0.70;   % UAV9 - Bright Teal
+    0.85 0.35 0.90;   % UAV10 - Orchid Purple
 ];
 
 nUAV = numel(cfg.uav);
+uavColors = palette(1:min(nUAV, size(palette, 1)), :);
+if nUAV > size(palette, 1)
+    extraCols = hsv(nUAV - size(palette, 1));
+    uavColors = [uavColors; extraCols];
+end
+
 platforms = cell(1, nUAV);
 for i = 1:nUAV
     nedPos = enu2ned(cfg.uav(i).position);
@@ -42,9 +54,14 @@ ax3D = subplot('Position', [0.03, 0.06, 0.62, 0.88]);
 setup(scene);
 [ax3D, sceneHandles] = show3D(scene, 'Parent', ax3D);
 
-xlim(ax3D, [-5 105]);
-ylim(ax3D, [-5 105]);
-zlim(ax3D, [ 0  36]);
+% Arena boundary scaling
+maxX = max(100, max(arrayfun(@(t) t.location(1), cfg.task)) + 10);
+maxY = max(100, max(arrayfun(@(t) t.location(2), cfg.task)) + 10);
+maxZ = max(35, max(arrayfun(@(t) t.location(3), cfg.task)) + 10);
+
+xlim(ax3D, [-5 maxX]);
+ylim(ax3D, [-5 maxY]);
+zlim(ax3D, [ 0  maxZ]);
 axis(ax3D, 'manual');
 
 ax3D.Color           = [0.03 0.04 0.06];
@@ -95,7 +112,8 @@ rs = struct( ...
     'uavColors',      uavColors,      ...
     'taskColors',     taskColors,     ...
     'priorityColors', priorityColors, ...
-    'strategy',       strategy);
+    'strategy',       strategy,       ...
+    'cfg',            cfg);
 end
 
 function nedPos = enu2ned(enuPos)

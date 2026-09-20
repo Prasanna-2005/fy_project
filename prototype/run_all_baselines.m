@@ -11,10 +11,10 @@ warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
 cleanupWarn = onCleanup(@() warning(warnState));
 
 cases = {
-    '1_RRAM',               'rram',     'RRAM (Random Selection)';
-    '2_BDTR',               'bdtr',     'BDTR (Bidirectional)';
-    '3_HUNGARIAN_REACTIVE', 'reactive', 'Reactive Hungarian (LAP)';
-    '4_SROM',               'srom',     'SROM (Greedy Adapted)'
+    '1_RRAM',          'rram',     'RRAM (Baseline)';
+    '2_BDTR',          'bdtr',     'BDTR (Baseline)';
+    '3_SROM',          'srom',     'SROM (Baseline)';
+    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)'
 };
 
 results = struct();

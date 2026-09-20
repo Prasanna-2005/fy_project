@@ -1,14 +1,6 @@
-function result = sim(cfg, strategy, visualize)
-% SIM  Run one full mission timeline under the BDTR policy.
+function result = sim(cfg, strategy)
+% SIM  Run one full mission timeline under the BDTR policy (Headless Batch).
 % strategy: 'bdtr' (Section 2 of BDTR_Baseline_Methods.md)
-%
-% Implements Algorithm 1: Bidirectional Task Reallocation (BDTR)
-%   - Phase 1: Feasibility Restoration (reactive offloading of K_invalid
-%     from u_fail to argmin-load capable UAVs, priority descending).
-%   - Phase 2: Residual Capacity Exploitation (pulls tasks back from
-%     argmax-load donors to u_fail while |Q_d| - |Q_fail| >= 2).
-%   - Deterministic tie-breaking per Section 5.2.
-%   - Time-stepped flight and execution matching canonical scenario.
 
 addpath(fullfile(fileparts(mfilename('fullpath')), '..', 'common'));
 
@@ -17,9 +9,6 @@ if nargin < 1 || isempty(cfg)
 end
 if nargin < 2 || isempty(strategy)
     strategy = 'bdtr';
-end
-if nargin < 3
-    visualize = cfg.sim.visualize;
 end
 if ~strcmp(strategy, 'bdtr')
     error('sim:unknownStrategy', 'Expected strategy "bdtr", got "%s".', strategy);
@@ -40,10 +29,6 @@ end
 if ~isempty(initTasks)
     [uavs, tasks, ev0] = bdtrInitialAllocation(uavs, tasks, initTasks);
     events = [events, ev0];
-end
-
-if visualize
-    rs = initRender(cfg, strategy);
 end
 
 for t = 0:cfg.sim.dt:cfg.sim.tEnd
@@ -90,11 +75,6 @@ for t = 0:cfg.sim.dt:cfg.sim.tEnd
     end
 
     [uavs, tasks] = moveFleet(uavs, tasks, t, cfg.sim.dt, cfg);
-
-    if visualize
-        renderFrame(rs, uavs, tasks, t, events);
-        pause(cfg.sim.playback * cfg.sim.dt);
-    end
 end
 
 result.uavs     = uavs;
@@ -178,8 +158,7 @@ else
 end
 end
 
-function [uavs, tasks, evBDTR] = bdtrReallocation(uavs, tasks, u_fail, t, cfg)
-if nargin < 5, cfg = struct(); end
+function [uavs, tasks, evBDTR] = bdtrReallocation(uavs, tasks, u_fail, t, ~)
 evBDTR = struct('time', {}, 'taskIdx', {}, 'oldUAV', {}, 'newUAV', {}, 'trigger', {}, 'reason', {});
 
 % ------------------- PHASE 1: Feasibility Restoration -------------------
@@ -241,12 +220,6 @@ if ~isempty(k_invalid)
 end
 
 % ----------------- PHASE 2: Residual Capacity Exploitation -----------------
-% Apply gamma (reallocation gain coefficient) from Table II
-gamma = 0.5; % default
-if isfield(cfg, 'bdtr') && isfield(cfg.bdtr, 'gamma')
-    gamma = cfg.bdtr.gamma;
-end
-
 u_donor = setdiff(1:numel(uavs), u_fail);
 
 while true
@@ -259,7 +232,7 @@ while true
     candMax = u_donor(donor_loads == maxLoad);
     u_d = min(candMax);
 
-    % Load difference check: scaled by gamma for reallocation aggressiveness
+    % Trigger condition: L_d - L_fail >= 2 (stop when gap closes to <= 1)
     loadDiff = numel(uavs(u_d).queue) - numel(uavs(u_fail).queue);
     if loadDiff <= 1
         break;
@@ -270,27 +243,15 @@ while true
     for qIdx = candTasks
         if isFeasible(tasks(qIdx).requiredCap, uavs(u_fail).capabilities)
             if qIdx == uavs(u_d).assignedTask && ~isnan(tasks(qIdx).arrivalTime) && (t - tasks(qIdx).arrivalTime) > 0
-                continue;
+                continue; % Do not interrupt task actively in execution
             end
             swappable(end+1) = qIdx; %#ok<AGROW>
         end
     end
 
     if ~isempty(swappable)
-        % Score swappable tasks by gamma-weighted load improvement
-        bestSwapScore = -Inf;
-        k_star = min(swappable); % fallback
-        for sIdx = 1:numel(swappable)
-            sq = swappable(sIdx);
-            % Load improvement from moving sq: donor loses 1, fail gains 1
-            swapScore = gamma * (loadDiff - 2); % net improvement after swap
-            if swapScore > bestSwapScore
-                bestSwapScore = swapScore;
-                k_star = sq;
-            elseif swapScore == bestSwapScore && sq < k_star
-                k_star = sq; % tie-break: lowest task index
-            end
-        end
+        % Authentic BDTR: pick earliest swappable task in Q_d (least disruption)
+        k_star = swappable(1);
 
         uavs(u_d).queue = uavs(u_d).queue(uavs(u_d).queue ~= k_star);
         if uavs(u_d).assignedTask == k_star

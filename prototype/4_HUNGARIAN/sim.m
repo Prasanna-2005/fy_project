@@ -36,15 +36,24 @@ tasks = makeTaskSet(cfg);
 
 events = struct('time', {}, 'taskIdx', {}, 'oldUAV', {}, 'newUAV', {}, 'trigger', {}, 'reason', {});
 
-% Initial allocation: one reallocation event at t=0 over tasks released at t=0.
+% Initial allocation: assign all released tasks into UAV queues via multi-round LAP
 initTasks = find([tasks.releaseTime] <= 0);
 pendingTasks = find([tasks.releaseTime] > 0);
 for pIdx = pendingTasks
     tasks(pIdx).status = 'pending';
 end
-if ~isempty(initTasks)
-    [uavs, tasks, ev0] = reallocationEvent(uavs, tasks, cfg, 0, initTasks);
-    events = [events, ev0];
+
+unassignedInit = initTasks;
+while ~isempty(unassignedInit)
+    assignedBefore = find(strcmp({tasks.status}, 'assigned'));
+    [uavs, tasks, ev0] = reallocationEvent(uavs, tasks, cfg, 0, unassignedInit);
+    events = [events, ev0]; %#ok<AGROW>
+    assignedAfter = find(strcmp({tasks.status}, 'assigned'));
+    newlyAssigned = setdiff(assignedAfter, assignedBefore);
+    if isempty(newlyAssigned)
+        break; % Remaining tasks cannot be assigned to any capable UAV
+    end
+    unassignedInit = setdiff(unassignedInit, newlyAssigned);
 end
 
 if visualize

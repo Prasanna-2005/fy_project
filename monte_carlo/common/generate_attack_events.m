@@ -1,7 +1,7 @@
 function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
 % GENERATE_ATTACK_EVENTS  Parameterized failure-rate generator.
 %   Replaces the hardcoded 2-event capabilityChanges with a stochastic
-%   attack schedule matching the BDTR paper's experimental design:
+%   attack schedule matching the BDTR paper''s experimental design:
 %     - strength: fraction of total capability-slots to degrade (0.2/0.3/0.4)
 %     - pattern:  'random', 'balanced', or 'directed'
 %     - rngSeed:  integer seed for reproducibility across Monte Carlo runs
@@ -29,7 +29,7 @@ function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
 
     % Number of attacks = round(strength * totalSlots), at least 1
     nAttacks = max(1, round(strength * totalSlots));
-    nAttacks = min(nAttacks, totalSlots); % can't degrade more than exist
+    nAttacks = min(nAttacks, totalSlots); % can''t degrade more than exist
 
     % ---- Select which slots get attacked, based on pattern ----
     switch lower(pattern)
@@ -46,7 +46,7 @@ function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
                 u = slots(s).uavIndex;
                 uavSlotMap{u}(end+1) = s;
             end
-            % Shuffle each UAV's slots
+            % Shuffle each UAV''s slots
             for u = 1:nUAV
                 uavSlotMap{u} = uavSlotMap{u}(randperm(numel(uavSlotMap{u})));
             end
@@ -67,19 +67,28 @@ function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
             end
 
         case 'directed'
-            % Concentrate attacks on the most-capable UAV(s)
-            capCounts = zeros(1, nUAV);
-            for i = 1:nUAV
-                capCounts(i) = numel(cfg.uav(i).capabilities);
+            % Directed Attack: concentrates failures on one payload type across the fleet
+            % (eliminates a whole capability class, causing the fastest collapse).
+            allPayloadTypes = unique({slots.capability});
+
+            % Determine target priority by fleet task demand
+            taskCaps = {};
+            for j = 1:numel(cfg.task)
+                taskCaps = [taskCaps, cfg.task(j).requiredCap]; %#ok<AGROW>
             end
-            [~, sortedUAVs] = sort(capCounts, 'descend');
+            typeDemand = zeros(1, numel(allPayloadTypes));
+            for pt = 1:numel(allPayloadTypes)
+                typeDemand(pt) = sum(strcmp(taskCaps, allPayloadTypes{pt}));
+            end
+            [~, targetOrder] = sort(typeDemand, 'descend');
 
             attackIdx = [];
-            for ui = 1:nUAV
-                u = sortedUAVs(ui);
-                slotsForU = find([slots.uavIndex] == u);
-                slotsForU = slotsForU(randperm(numel(slotsForU)));
-                for s = slotsForU
+            for ptIdx = targetOrder
+                targetType = allPayloadTypes{ptIdx};
+                matchingSlots = find(strcmp({slots.capability}, targetType));
+                % Randomize which UAVs lose it first if nAttacks < count
+                matchingSlots = matchingSlots(randperm(numel(matchingSlots)));
+                for s = matchingSlots
                     attackIdx(end+1) = s; %#ok<AGROW>
                     if numel(attackIdx) >= nAttacks
                         break;
