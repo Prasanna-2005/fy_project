@@ -1,6 +1,9 @@
 function result = sim(cfg, strategy)
 % SIM  Run one full mission timeline under the SROM policy (Headless Batch).
-% strategy: 'srom' (Section 4 of BDTR_Baseline_Methods.md)
+%
+% Li et al. 2023, Algorithm 1 (RELIAB ENG SYST SAFE 237:109368):
+%   binary platform failure, unidirectional offload of ALL remaining
+%   missions, exhaustive permutation search onto spare-capacity survivors.
 
 addpath(fullfile(fileparts(mfilename('fullpath')), '..', 'common'));
 
@@ -19,7 +22,7 @@ tasks = makeTaskSet(cfg);
 
 events = struct('time', {}, 'taskIdx', {}, 'oldUAV', {}, 'newUAV', {}, 'trigger', {}, 'reason', {});
 
-% ---- Initial allocation at t=0: SROM greedy-sort load-minimizing assignment ----
+% ---- Initial allocation (SROM paper: initial sequence is given, not solved) ----
 initTasks = find([tasks.releaseTime] <= 0);
 pendingTasks = find([tasks.releaseTime] > 0);
 for pIdx = pendingTasks
@@ -36,20 +39,20 @@ for t = 0:cfg.sim.dt:cfg.sim.tEnd
     % ---- Dynamic Midway Task Release ----
     for j = 1:numel(tasks)
         if strcmp(tasks(j).status, 'pending') && t >= tasks(j).releaseTime
-            [uavs, tasks, evRel] = sromAssignSingleTask(uavs, tasks, j, t);
+            [uavs, tasks, evRel] = sromAssignSingleTask(uavs, tasks, j, t, cfg);
             events = [events, evRel]; %#ok<AGROW>
         end
     end
 
     [uavs, justChanged, degradedUAVs, degradedCaps] = fireCapabilityChanges(uavs, cfg, t);
 
-    % ---- Reactive trigger: on the tick capability loss lands, run SROM Algorithm 3
+    % ---- Reactive trigger: on the tick capability loss lands, run SROM Algorithm 1
     if justChanged
         for dIdx = 1:numel(degradedUAVs)
             u_fail = degradedUAVs(dIdx);
             events(end+1) = struct('time', t, 'taskIdx', 0, 'oldUAV', 0, 'newUAV', u_fail, ...
                 'trigger', 'degradation', 'reason', degradedCaps{dIdx}); %#ok<AGROW>
-            [uavs, tasks, evSROM] = sromReallocation(uavs, tasks, u_fail, t);
+            [uavs, tasks, evSROM] = sromReallocation(uavs, tasks, u_fail, t, cfg);
             events = [events, evSROM]; %#ok<AGROW>
         end
     end
@@ -110,20 +113,8 @@ for idx = 1:numel(orderedTasks)
         tasks(k).status = 'atrisk';
         tasks(k).atriskReason = 'Capability';
     else
-        load_before = max(arrayfun(@(v) numel(v.queue), uavs));
-        scores = zeros(1, numel(cand));
-        for b = 1:numel(cand)
-            u = cand(b);
-            q_trial = numel(uavs(u).queue) + 1;
-            other_u = setdiff(1:numel(uavs), u);
-            other_loads = arrayfun(@(v) numel(v.queue), uavs(other_u));
-            load_after = max([other_loads, q_trial]);
-            scores(b) = load_before - load_after;
-        end
-        bestScore = max(scores);
-        candBest = cand(scores == bestScore);
-        loads = arrayfun(@(u) numel(u.queue), uavs(candBest));
-        candMin = candBest(loads == min(loads));
+        loads = arrayfun(@(u) numel(u.queue), uavs(cand));
+        candMin = cand(loads == min(loads));
         u_target = min(candMin);
 
         uavs(u_target).queue(end+1) = k;
@@ -141,11 +132,18 @@ for i = 1:numel(uavs)
 end
 end
 
-function [uavs, tasks, evRel] = sromAssignSingleTask(uavs, tasks, k, t)
+function [uavs, tasks, evRel] = sromAssignSingleTask(uavs, tasks, k, t, cfg)
 evRel = struct('time', {}, 'taskIdx', {}, 'oldUAV', {}, 'newUAV', {}, 'trigger', {}, 'reason', {});
+C = sromCapacity(cfg, numel(tasks), numel(uavs));
 req = tasks(k).requiredCap;
 cand = [];
 for u = 1:numel(uavs)
+    if isempty(uavs(u).capabilities)
+        continue; % already paralyzed (Assumption 2.2)
+    end
+    if numel(uavs(u).queue) >= C
+        continue;
+    end
     if isFeasible(req, uavs(u).capabilities)
         cand(end+1) = u; %#ok<AGROW>
     end
@@ -154,22 +152,9 @@ if isempty(cand)
     tasks(k).status = 'atrisk';
     tasks(k).atriskReason = 'Capability';
 else
-    load_before = max(arrayfun(@(v) numel(v.queue), uavs));
-    scores = zeros(1, numel(cand));
-    for b = 1:numel(cand)
-        u = cand(b);
-        q_trial = numel(uavs(u).queue) + 1;
-        other_u = setdiff(1:numel(uavs), u);
-        other_loads = arrayfun(@(v) numel(v.queue), uavs(other_u));
-        load_after = max([other_loads, q_trial]);
-        scores(b) = load_before - load_after;
-    end
-    bestScore = max(scores);
-    candBest = cand(scores == bestScore);
-    loads = arrayfun(@(u) numel(u.queue), uavs(candBest));
-    candMin = candBest(loads == min(loads));
+    loads = arrayfun(@(u) numel(u.queue), uavs(cand));
+    candMin = cand(loads == min(loads));
     u_target = min(candMin);
-
     uavs(u_target).queue(end+1) = k;
     tasks(k).assignedUAV = u_target;
     tasks(k).status = 'assigned';
@@ -181,102 +166,179 @@ else
 end
 end
 
-function [uavs, tasks, evSROM] = sromReallocation(uavs, tasks, u_fail, t)
+function [uavs, tasks, evSROM] = sromReallocation(uavs, tasks, u_fail, t, cfg)
+% Li et al. 2023 Algorithm 1 + Assumption 2 (Attack Condition) item 2:
+% a struck UAV is fully paralyzed; leftover missions are searched over
+% μ! permutations and inserted into spare-capacity survivors Q_c only.
 evSROM = struct('time', {}, 'taskIdx', {}, 'oldUAV', {}, 'newUAV', {}, 'trigger', {}, 'reason', {});
 
-q_fail = uavs(u_fail).queue;
-t_remain = [];
-for idx = 1:numel(q_fail)
-    k = q_fail(idx);
-    if ~isFeasible(tasks(k).requiredCap, uavs(u_fail).capabilities)
-        t_remain(end+1) = k; %#ok<AGROW>
-    end
-end
+C = sromCapacity(cfg, numel(tasks), numel(uavs));
 
+% Platform-centric binary failure: strip every remaining payload.
+uavs(u_fail).capabilities = {};
+
+t_remain = uavs(u_fail).queue;
 if isempty(t_remain)
+    uavs(u_fail).assignedTask = 0;
     return;
 end
 
-% Sort t_remain by priority descending, task index ascending (tie-break)
-priT = [tasks(t_remain).priority];
-[~, ordT] = sortrows([-priT(:), t_remain(:)]);
-t_remain = t_remain(ordT);
+for idx = 1:numel(t_remain)
+    k = t_remain(idx);
+    tasks(k).arrivalTime = NaN;
+    tasks(k).assignedUAV = 0;
+end
+uavs(u_fail).queue = [];
+uavs(u_fail).assignedTask = 0;
 
-% Remove t_remain from u_fail ''s queue first
-uavs(u_fail).queue = setdiff(uavs(u_fail).queue, t_remain, 'stable');
-if ismember(uavs(u_fail).assignedTask, t_remain)
-    tasks(uavs(u_fail).assignedTask).arrivalTime = NaN;
-    if ~isempty(uavs(u_fail).queue)
-        uavs(u_fail).assignedTask = uavs(u_fail).queue(1);
-    else
-        uavs(u_fail).assignedTask = 0;
+alive = [];
+for u = 1:numel(uavs)
+    if u ~= u_fail && ~isempty(uavs(u).capabilities)
+        alive(end+1) = u; %#ok<AGROW>
     end
 end
 
-healthy_uavs = setdiff(1:numel(uavs), u_fail);
+q_c = [];
+for idx = 1:numel(alive)
+    u = alive(idx);
+    if numel(uavs(u).queue) < C
+        q_c(end+1) = u; %#ok<AGROW>
+    end
+end
 
-% ---- Per-task greedy assignment (FIXED Q_c construction) ----
-% Paper: Q_c = capable + spare-capacity UAVs, checked PER-UAV for each task.
-% Old bug: required UAV be capable of EVERY task in t_remain before entering Q_c.
-% Fix: For each task individually, find capable healthy UAVs and pick best.
-for kIdx = 1:numel(t_remain)
-    k = t_remain(kIdx);
-    req = tasks(k).requiredCap;
+if isempty(q_c)
+    for idx = 1:numel(t_remain)
+        k = t_remain(idx);
+        tasks(k).status = 'atrisk';
+        tasks(k).atriskReason = 'Capability';
+    end
+    return;
+end
 
-    % Build per-task candidate set: healthy UAVs capable of THIS task
-    cand_k = [];
-    for hIdx = 1:numel(healthy_uavs)
-        u = healthy_uavs(hIdx);
-        if isFeasible(req, uavs(u).capabilities)
-            cand_k(end+1) = u; %#ok<AGROW>
+mu = numel(t_remain);
+nSlots = 0;
+for h = 1:numel(q_c)
+    nSlots = nSlots + max(0, C - numel(uavs(q_c(h)).queue));
+end
+P = sromPermutations(t_remain, tasks, nSlots, t);
+
+% Precompute payload feasibility so the μ! inner loop is not a cell-ismember.
+nU = numel(uavs);
+canDo = false(nU, numel(tasks));
+for u = 1:nU
+    if isempty(uavs(u).capabilities)
+        continue;
+    end
+    for idx = 1:mu
+        k = t_remain(idx);
+        canDo(u, k) = isFeasible(tasks(k).requiredCap, uavs(u).capabilities);
+    end
+end
+
+bestScore = -Inf;
+bestAssign = zeros(1, numel(tasks));
+
+for p = 1:size(P, 1)
+    perm = P(p, :);
+    qlen = zeros(1, numel(uavs));
+    for u = 1:numel(uavs)
+        qlen(u) = numel(uavs(u).queue);
+    end
+    assign = zeros(1, mu);
+    score = 0;
+    for g = 1:mu
+        k = perm(g);
+        bestU = 0;
+        bestPhi = -Inf;
+        for h = 1:numel(q_c)
+            u = q_c(h);
+            if qlen(u) >= C || ~canDo(u, k)
+                continue;
+            end
+            % Incremental return φ (Li et al. Eq. 8 analogue): mission value,
+            % then remaining capacity. Lowest UAV index wins remaining ties.
+            phi = tasks(k).priority * 1000 + (C - qlen(u));
+            if phi > bestPhi || (phi == bestPhi && (bestU == 0 || u < bestU))
+                bestPhi = phi;
+                bestU = u;
+            end
+        end
+        if bestU > 0
+            assign(g) = bestU;
+            qlen(bestU) = qlen(bestU) + 1;
+            score = score + bestPhi;
         end
     end
+    if score > bestScore
+        bestScore = score;
+        bestAssign(:) = 0;
+        for g = 1:mu
+            bestAssign(perm(g)) = assign(g);
+        end
+    end
+end
 
-    if isempty(cand_k)
-        % No capable UAV for this specific task
+for idx = 1:numel(t_remain)
+    k = t_remain(idx);
+    u_target = 0;
+    if k <= numel(bestAssign)
+        u_target = bestAssign(k);
+    end
+    if u_target > 0
+        uavs(u_target).queue(end+1) = k;
+        if uavs(u_target).assignedTask == 0
+            uavs(u_target).assignedTask = k;
+        end
+        tasks(k).assignedUAV = u_target;
+        tasks(k).status = 'assigned';
+        tasks(k).atriskReason = '';
+        evSROM(end+1) = struct('time', t, 'taskIdx', k, 'oldUAV', u_fail, 'newUAV', u_target, ...
+            'trigger', 'reactive', 'reason', 'SROM-Alg1'); %#ok<AGROW>
+    else
         tasks(k).assignedUAV = 0;
         tasks(k).status = 'atrisk';
         tasks(k).atriskReason = 'Capability';
-        continue;
     end
-
-    % Score each candidate by load-imbalance improvement
-    load_before = max(arrayfun(@(v) numel(v.queue), uavs));
-    best_score  = -Inf;
-    best_target = 0;
-
-    for cIdx = 1:numel(cand_k)
-        u = cand_k(cIdx);
-        q_trial_len = numel(uavs(u).queue) + 1;
-        other_u     = setdiff(1:numel(uavs), u);
-        other_loads = arrayfun(@(v) numel(v.queue), uavs(other_u));
-        load_after  = max([other_loads, q_trial_len]);
-        score_u     = load_before - load_after;
-
-        if score_u > best_score
-            best_score  = score_u;
-            best_target = u;
-        elseif score_u == best_score
-            if numel(uavs(u).queue) < numel(uavs(best_target).queue) || ...
-               (numel(uavs(u).queue) == numel(uavs(best_target).queue) && u < best_target)
-                best_target = u;
-            end
-        end
-    end
-
-    % Assign this task to best_target
-    uavs(best_target).queue(end+1) = k;
-    if uavs(best_target).assignedTask == 0
-        uavs(best_target).assignedTask = k;
-    end
-    tasks(k).assignedUAV = best_target;
-    tasks(k).status = 'assigned';
-    tasks(k).atriskReason = '';
-    tasks(k).arrivalTime = NaN;
-    evSROM(end+1) = struct('time', t, 'taskIdx', k, 'oldUAV', u_fail, 'newUAV', best_target, ...
-        'trigger', 'reactive', 'reason', 'SROM-PerTaskAssign'); %#ok<AGROW>
+end
 end
 
+function C = sromCapacity(cfg, nT, nU)
+C = ceil(nT / max(1, nU));
+if isfield(cfg, 'bdtr') && isfield(cfg.bdtr, 'nominalCapacity')
+    C = cfg.bdtr.nominalCapacity;
+end
+end
+
+function P = sromPermutations(t_remain, tasks, nSlots, t) %#ok<INUSD>
+mu = numel(t_remain);
+if mu <= 1
+    P = t_remain(:).';
+    return;
+end
+pri = [tasks(t_remain).priority];
+[~, ord] = sortrows([-pri(:), t_remain(:)]);
+ordered = t_remain(ord);
+% If every leftover can take a spare slot, every permutation places the
+% same set; Algorithm 1's argmax is the value-sorted order.
+if nSlots >= mu
+    P = ordered(:).';
+    return;
+end
+maxExact = 7;
+if mu <= maxExact
+    P = perms(t_remain);
+    return;
+end
+nSearch = min(mu, max(nSlots, 1));
+nSearch = min(nSearch, maxExact);
+head = ordered(1:nSearch);
+tail = ordered(nSearch+1:end);
+H = perms(head);
+if isempty(tail)
+    P = H;
+else
+    P = [H, repmat(tail, size(H, 1), 1)];
+end
 end
 
 %% ======================= STATE CONSTRUCTION =======================

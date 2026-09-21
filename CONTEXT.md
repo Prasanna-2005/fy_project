@@ -21,7 +21,7 @@ code/
 │   ├── 2_BDTR/             ← Baseline 2: Bidirectional Task Reallocation
 │   │   ├── main.m
 │   │   └── sim.m
-│   ├── 3_SROM/             ← Baseline 3: Greedy-Sort Adapted (Li et al. 2023)
+│   ├── 3_SROM/             ← Baseline 3: Li et al. 2023 Algorithm 1
 │   │   ├── main.m
 │   │   └── sim.m
 │   ├── 4_HUNGARIAN/        ← OUR STRATEGY: Reactive Hungarian (LAP)
@@ -75,7 +75,7 @@ code/
 |---|-----------|-----------|------|--------|
 | 1 | `1_RRAM` | Random Resource Allocation | **Baseline** | Constructed from BDTR paper behavioral description (see §1 below) |
 | 2 | `2_BDTR` | Bidirectional Task Reallocation | **Baseline** | Zeng et al. 2026 — extracted (2 pseudocode typos corrected, see §2 below) |
-| 3 | `3_SROM` | Greedy-Sort Adapted | **Baseline** | Li et al. 2023 — adapted for scalability (factorial→greedy, see §4 below) |
+| 3 | `3_SROM` | Soft Resource Optimization | **Baseline** | Li et al. 2023 Algorithm 1 (binary failure + permutation search) |
 | 4 | `4_HUNGARIAN` | Reactive Hungarian (LAP) | **Our Strategy** | Project's centralized LAP-based allocator (see §3 below) |
 
 ---
@@ -298,31 +298,36 @@ Output:  X[j][i] = 1  iff task j assigned to UAV i
 
 ---
 
-### §4. SROM Algorithm — Adapted for Comparison Environment
+### §4. SROM Algorithm — Extracted from Li et al. 2023
 
-SROM (Li et al. 2023) — adapted from exhaustive factorial enumeration to a greedy-sort approximation for scalability at BDTR's scenario scale (80–120 tasks).
+SROM (Soft Resource Optimization Method, Li et al., Reliab. Eng. Syst. Saf. 237:109368, 2023), used by Zeng et al. as a unidirectional / platform-centric baseline.
+
+From the source paper, not a substitute algorithm:
+- **Assumption 2 (Attack), item 2:** after a UAV is attacked, all of its functions are paralyzed; partial paralysis is not considered. A payload failure is therefore treated as platform death.
+- **Assumption 3:** leftover missions go only to undamaged UAVs that still have spare mission-execution capacity C. If that set Q_c is empty, the leftovers stay blocked.
+- **Algorithm 1:** enumerate the μ! permutations of the failed UAV's unfinished missions T_remain and insert each mission, in that order, onto the Q_c UAV that maximises incremental return. Never assign back to the failed UAV.
+
+μ! is exact for μ ≤ 7 (Li et al. leftover sets are a few missions; 7! = 5040). At BDTR queue depth, if μ > 7 we permute a priority prefix of length min(nSlots, 7) rather than switching to a different algorithm.
 
 ```
-Algorithm 3: SROM (Adapted — Greedy-sort approximation)
+Algorithm 1: Solving Algorithm of SROM (Li et al. 2023)
 
-Input:   T_remain ← unfinished missions of failed UAV u_fail
-         Q_c      ← {u ∈ U \ {u_fail} | u has spare capacity AND capability match}
-         {Q_u}    ← current mission queues
+Input:   R_U  ← undamaged UAVs
+         T_remain ← unfinished missions of the attacked UAV
+Output:  Updated mission list
 
-Output:  Updated queues after reassignment
-
-1:  if Q_c = ∅  then  return  end if
-2:  Sort T_remain by mission value descending  [tiebreak: lowest task index]
-3:  best_score ← -∞;  best_target ← None
-4:  for each u ∈ Q_c  do
-5:      score(u) ← load_before − load_after  (maximize = minimize max load)
-6:      if score(u) > best_score  then  update best  end if
-7:  end for
-8:  Q_{best_target} ← Q_{best_target} ∪ T_remain
-9:  return updated {Q_u}
+1:  Q   ← undamaged UAVs
+2:  Q_c ← {u ∈ Q | u has remaining capacity}
+3:  if Q_c = ∅  then  T_remain stay blocked; return
+4:  for each of the μ! permutations of T_remain  do
+5:      for each mission k in that order  do
+6:          insert k onto the Q_c UAV with maximum incremental return
+7:          (skip if no capable UAV still has a spare slot)
+8:      end for
+9:      record total incremental return of this permutation
+10: end for
+11: commit the permutation with maximum return
 ```
-
-**Adaptation disclosure:** SROM's original algorithm performs exhaustive enumeration over all μ! permutations (intractable at 80–120 tasks). We implement a greedy-sort approximation consistent with SROM's load-balancing intent. This adaptation is disclosed in the methodology.
 
 ---
 
@@ -340,23 +345,23 @@ Deterministic, reproducible resolution across all four algorithms:
 
 ### §6. Comparison Table
 
-| **Aspect** | **RRAM** | **BDTR** | **SROM (adapted)** | **Hungarian (Ours)** |
+| **Aspect** | **RRAM** | **BDTR** | **SROM** | **Hungarian (Ours)** |
 |---|---|---|---|---|
 | **Role** | Baseline | Baseline | Baseline | **Our Strategy** |
-| **Source** | Constructed | Zeng et al. 2026 | Li et al. 2023 (adapted) | Our project |
-| **Core logic** | Random draw from U_cap | Phase 1: offload; Phase 2: load-balance | Greedy-sort + best-UAV insertion | Min-cost perfect matching (LAP) |
-| **Optimality** | None (stochastic) | Local (Lyapunov-proven) | Greedy approximation | **Optimal** for C_ij |
-| **Complexity** | O(\|U\|) | O(N_Q · N_U · N_L) | O(μ log μ + \|Q_c\| · \|U\|) | O(N³) |
-| **Load-balancing** | None | Phase 1: argmin load; Phase 2: load-diff ≥ 2 | Minimise max-load | Via normalised C_ij costs |
-| **Bidirectionality** | No | Yes (Phase 2 pulls tasks back) | No — unidirectional | No |
+| **Source** | Constructed | Zeng et al. 2026 | Li et al. 2023 Algorithm 1 | Our project |
+| **Core logic** | Random draw from U_cap | Phase 1: offload; Phase 2: load-balance | Binary platform death; μ! insert into Q_c | Min-cost perfect matching (LAP) |
+| **Optimality** | None (stochastic) | Local (Lyapunov-proven) | Exhaustive over leftover permutations | **Optimal** for C_ij |
+| **Complexity** | O(\|U\|) | O(N_Q · N_U · N_L) | O(μ! · μ · \|Q_c\|) | O(N³) |
+| **Load-balancing** | None | Phase 1: argmin load; Phase 2: load-diff ≥ 2 | Incremental-return insertion under cap C | Via normalised C_ij costs |
+| **Bidirectionality** | No | Yes (Phase 2 pulls tasks back) | No — unidirectional; failed UAV is dead | No |
 | **Paper results** | 0.803 completion / 0.347 CRI | 0.829 completion / 0.862 CRI | 0.225 completion / 0.426 CRI | — |
 
 ---
 
 ### §7. Disclosure Wording
 
-**SROM Adaptation:**
-> "SROM (Li et al. 2023) is reproduced with one adaptation: the original algorithm performs exhaustive enumeration over all μ! permutations of the failed UAV's unfinished tasks, which becomes computationally intractable at the tested scenario scale of 80–120 tasks. We implement a greedy-sort approximation consistent with SROM's load-balancing intent, preserving its defining characteristics — unidirectional offloading, capacity-constrained assignment, and no exploitation of residual capability."
+**SROM (Li et al. 2023):**
+> "SROM is implemented from Li et al. (2023) Algorithm 1 and Assumption 2: a payload failure is treated as full platform paralysis; all unfinished missions of the struck UAV are reassigned by permutation search onto undamaged UAVs with spare capacity. The failed UAV is never used again. When the leftover set exceeds 7 missions, a priority prefix of the same μ! space is searched (Li et al. leftover sets are a handful of missions; BDTR queues can be deeper). Capability matching is retained because Zeng et al.'s tasks have payload types; Li et al. UAVs are homogeneous."
 
 **RRAM Construction:**
 > "RRAM (cited by Zeng et al. 2026 as ref [30]) is attributed to Moshksar, Bayesteh & Khandani (2011), an information-theoretic paper containing no task-allocation algorithm. We construct RRAM from the BDTR paper's own behavioral description: a zero-information baseline that randomly selects a capable UAV for each unassigned task without load-balancing checks."
