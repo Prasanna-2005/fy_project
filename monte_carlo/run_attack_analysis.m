@@ -9,11 +9,12 @@
 % Produces:
 %   1. Degradation curves: CRI and Completion Rate vs. Interruption Strength
 %   2. Vulnerability comparison across attack patterns (Directed vs. Random/Balanced)
-%   3. Saves data to results/attack_analysis_results.mat and plots to results/attack_degradation_curves.png
+%   3. Saves data to results/mat/attack_analysis_results.mat and plots to results/png/attack_degradation_curves.png
 
 clear; clc; close all;
 
 baseDir = fileparts(mfilename('fullpath'));
+addpath(baseDir);
 addpath(fullfile(baseDir, 'common'));
 
 warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
@@ -198,9 +199,7 @@ try
         plotIdx = plotIdx + 2;
     end
 
-    resultsDir = fullfile(baseDir, 'results');
-    if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
-    figPath = fullfile(resultsDir, 'attack_degradation_curves.png');
+    figPath = results_file('png', 'attack_degradation_curves.png');
     saveas(hFig, figPath);
     close(hFig);
     fprintf('\nDegradation curve plots saved to: %s\n', figPath);
@@ -262,10 +261,8 @@ trialVarNames = [{'Scenario', 'Pattern', 'Strength_pct', 'Algorithm', 'TrialInde
 attackTrialsTable = cell2table(attackTrialRows, 'VariableNames', trialVarNames);
 
 % ---- 3. Export CSV Files ----
-resultsDir = fullfile(baseDir, 'results');
-if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
-attackCsvPath       = fullfile(resultsDir, 'attack_summary_metrics.csv');
-attackTrialsCsvPath = fullfile(resultsDir, 'attack_raw_trials.csv');
+attackCsvPath       = results_file('csv', 'attack_summary_metrics.csv');
+attackTrialsCsvPath = results_file('csv', 'attack_raw_trials.csv');
 writetable(attackSummaryTable, attackCsvPath);
 writetable(attackTrialsTable, attackTrialsCsvPath);
 
@@ -282,7 +279,7 @@ attackResults.elapsed      = elapsed;
 attackResults.summaryTable = attackSummaryTable;
 attackResults.trialsTable  = attackTrialsTable;
 
-matPath = fullfile(resultsDir, 'attack_analysis_results.mat');
+matPath = results_file('mat', 'attack_analysis_results.mat');
 save(matPath, 'attackResults', 'attackSummaryTable', 'attackTrialsTable');
 
 fprintf('\nExperiment A results successfully saved to:\n');

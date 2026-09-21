@@ -7,9 +7,12 @@
 %   1. Loads mc_distribution_results.mat and displays clean summary tables.
 %   2. Loads attack_analysis_results.mat and displays degradation comparison tables.
 %   3. Automatically generates/refreshes human-readable CSV files for viewing in Excel:
-%        - mc_summary_metrics.csv (Monte Carlo means, stds, medians)
-%        - mc_raw_trials.csv     (All individual stochastic runs)
-%        - attack_summary_metrics.csv (Degradation sweeps across patterns & strengths)
+%        - csv/mc_summary_metrics.csv (Monte Carlo means, stds, medians)
+%        - csv/mc_raw_trials.csv     (All individual stochastic runs)
+%        - csv/attack_summary_metrics.csv (Degradation sweeps across patterns & strengths)
+%   4. Refreshes two summary-scorecard images (one per experiment):
+%        - png/mc_summary_scorecard.png
+%        - png/attack_summary_scorecard.png
 %
 % USAGE:
 %   inspect_results         % Inspect everything
@@ -22,15 +25,15 @@ function inspect_results(whichExp)
     end
 
     baseDir = fileparts(mfilename('fullpath'));
-    resultsDir = fullfile(baseDir, 'results');
-    if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
+    addpath(baseDir);
+    results_paths();
     fprintf('\n=========================================================================================================\n');
     fprintf('                          MULTI-UAV RESILIENCE METRICS INSPECTION REPORT\n');
     fprintf('=========================================================================================================\n');
 
     %% ------------------- 1. MONTE CARLO BENCHMARK (EXPERIMENT B) -------------------
     if ismember(lower(whichExp), {'all', 'mc', 'monte_carlo'})
-        mcMatPath = fullfile(resultsDir, 'mc_distribution_results.mat');
+        mcMatPath = results_locate('mat', 'mc_distribution_results.mat');
         if exist(mcMatPath, 'file')
             fprintf('\n>>> [EXPERIMENT B: MONTE CARLO BENCHMARK]\n');
             mcDataStruct = load(mcMatPath);
@@ -97,7 +100,7 @@ function inspect_results(whichExp)
                 'R_time_Mean', 'R_time_Std', 'R_time_Med', ...
                 'ThrptRecov_Mean', 'ThrptRecov_Std', 'ThrptRecov_Med' ...
             });
-            mcCsvPath = fullfile(resultsDir, 'mc_summary_metrics.csv');
+            mcCsvPath = results_file('csv', 'mc_summary_metrics.csv');
             writetable(mcSummaryTable, mcCsvPath);
 
             % Build raw trials table
@@ -117,7 +120,7 @@ function inspect_results(whichExp)
             end
             trialVarNames = [{'Scenario', 'Algorithm', 'RunIndex'}, metricFields];
             mcTrialsTable = cell2table(trialRows, 'VariableNames', trialVarNames);
-            trialsCsvPath = fullfile(resultsDir, 'mc_raw_trials.csv');
+            trialsCsvPath = results_file('csv', 'mc_raw_trials.csv');
             writetable(mcTrialsTable, trialsCsvPath);
 
             % Update mat file if needed
@@ -136,7 +139,7 @@ function inspect_results(whichExp)
 
     %% ------------------- 2. ATTACK ANALYSIS (EXPERIMENT A) -------------------
     if ismember(lower(whichExp), {'all', 'atk', 'attack'})
-        atkMatPath = fullfile(resultsDir, 'attack_analysis_results.mat');
+        atkMatPath = results_locate('mat', 'attack_analysis_results.mat');
         if exist(atkMatPath, 'file')
             fprintf('\n\n>>> [EXPERIMENT A: PARAMETRIC ATTACK ANALYSIS]\n');
             atkDataStruct = load(atkMatPath);
@@ -207,7 +210,7 @@ function inspect_results(whichExp)
                 statVarNames = [statVarNames, {[metricFields{fi}, '_Mean']}, {[metricFields{fi}, '_Std']}]; %#ok<AGROW>
             end
             attackSummaryTable = cell2table(attackRows, 'VariableNames', statVarNames);
-            attackCsvPath = fullfile(resultsDir, 'attack_summary_metrics.csv');
+            attackCsvPath = results_file('csv', 'attack_summary_metrics.csv');
             writetable(attackSummaryTable, attackCsvPath);
 
             % Build attack raw trials table
@@ -234,7 +237,7 @@ function inspect_results(whichExp)
             end
             trialVarNames = [{'Scenario', 'Pattern', 'Strength_pct', 'Algorithm', 'TrialIndex'}, metricFields];
             attackTrialsTable = cell2table(attackTrialRows, 'VariableNames', trialVarNames);
-            attackTrialsCsvPath = fullfile(resultsDir, 'attack_raw_trials.csv');
+            attackTrialsCsvPath = results_file('csv', 'attack_raw_trials.csv');
             writetable(attackTrialsTable, attackTrialsCsvPath);
 
             attackResults = a;
@@ -250,10 +253,16 @@ function inspect_results(whichExp)
         end
     end
 
+    try
+        plot_summary_scorecards();
+    catch ME
+        fprintf('\n[Note on scorecard plots]: %s\n', ME.message);
+    end
+
     fprintf('\n=========================================================================================================\n');
     fprintf('  HOW TO ACCESS IN MATLAB:\n');
-    fprintf('    1. Load data: load("monte_carlo/results/mc_distribution_results.mat")\n');
+    fprintf('    1. Load data: load("monte_carlo/results/mat/mc_distribution_results.mat")\n');
     fprintf('    2. View table in MATLAB: openvar("mcSummaryTable")\n');
-    fprintf('    3. Open in Excel: double-click results/mc_summary_metrics.csv or results/mc_raw_trials.csv\n');
+    fprintf('    3. Open in Excel: double-click results/csv/mc_summary_metrics.csv\n');
     fprintf('=========================================================================================================\n\n');
 end

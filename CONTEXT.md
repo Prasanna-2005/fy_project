@@ -51,14 +51,11 @@ code/
 │   │   ├── common_config.m
 │   │   ├── compute_paper_metrics.m
 │   │   └── generate_attack_events.m
-│   ├── results/            ← ALL generated output (plots, .mat, .csv)
-│   │   ├── mc_distributions.png
-│   │   ├── mc_distribution_results.mat
-│   │   ├── mc_summary_metrics.csv
-│   │   ├── mc_raw_trials.csv
-│   │   ├── attack_degradation_curves.png
-│   │   ├── attack_analysis_results.mat
-│   │   └── attack_summary_metrics.csv
+│   ├── results/            ← Generated output, nested by type
+│   │   ├── png/            ← plots and scorecards
+│   │   ├── csv/            ← summary and raw-trial tables
+│   │   ├── mat/            ← MATLAB archives
+│   │   └── log/            ← batch logs
 │   ├── run_monte_carlo.m       ← Experiment B: 300-run Monte Carlo benchmark
 │   ├── run_attack_analysis.m   ← Experiment A: Parametric attack degradation sweep
 │   ├── smoke_test.m            ← Rapid 1-shot sanity-check (developer tool)
@@ -97,14 +94,14 @@ code/
 #### Experiment A: `run_attack_analysis.m`
 - Parametric attack sweep: 3 patterns (Random, Balanced, Directed) × 3 strengths (20%, 30%, 40%) × 2 scenarios × 10 trials per condition.
 - Produces degradation response curves showing CRI and Completion Rate vs. Interruption Strength.
-- Saves to `results/`: `attack_analysis_results.mat`, `attack_degradation_curves.png`, `attack_summary_metrics.csv`.
+- Saves to `results/mat/`, `results/png/`, and `results/csv/`.
 
 #### Experiment B: `run_monte_carlo.m`
 - Authentic Monte Carlo benchmark: N_sim = 300 independent runs per scenario (Table II scale).
 - `common_config.m` accepts `taskSeed` so each run has a unique, independent stochastic task set while guaranteeing paired comparison across all 4 methods via Common Random Numbers (CRN).
 - Nominal attack: 30% random payload degradation (fixed budget; randomized UAV/slot/timing per run).
 - Reports Mean ± Std and Medians for: completionRate, CRI, R_task, R_time, throughputRecovery.
-- Saves to `results/`: `mc_distribution_results.mat`, `mc_distributions.png`, `mc_summary_metrics.csv`, `mc_raw_trials.csv`.
+- Saves to `results/mat/`, `results/png/`, and `results/csv/`.
 
 #### Utilities
 - **`smoke_test.m`**: Rapid 1-shot sanity-check (~1.5s) — verifies all 4 methods execute cleanly after code modifications. Not for publication data.

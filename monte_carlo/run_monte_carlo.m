@@ -10,11 +10,12 @@
 %       * Comprehensive Resilience Index (CRI) (Paper: BDTR 0.862, RRAM 0.347, SROM 0.426)
 %       * R_task, R_time, and Throughput Recovery
 %
-% Saves to results/ subdirectory: mc_distribution_results.mat, mc_distributions.png, CSVs
+% Saves to results/png, results/csv, results/mat
 
 clear; clc; close all;
 
 baseDir = fileparts(mfilename('fullpath'));
+addpath(baseDir);
 addpath(fullfile(baseDir, 'common'));
 
 warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
@@ -215,9 +216,7 @@ try
         plotIdx = plotIdx + 2;
     end
 
-    resultsDir = fullfile(baseDir, 'results');
-    if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
-    figPath = fullfile(resultsDir, 'mc_distributions.png');
+    figPath = results_file('png', 'mc_distributions.png');
     saveas(hFig, figPath);
     close(hFig);
     fprintf('\nMonte Carlo distribution plots successfully saved to: %s\n', figPath);
@@ -280,10 +279,8 @@ trialVarNames = [{'Scenario', 'Algorithm', 'RunIndex'}, metricFields];
 mcTrialsTable = cell2table(trialRows, 'VariableNames', trialVarNames);
 
 % ---- 3. Export CSV Files for instant opening in Excel / VS Code ----
-resultsDir = fullfile(baseDir, 'results');
-if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
-summaryCsvPath = fullfile(resultsDir, 'mc_summary_metrics.csv');
-trialsCsvPath  = fullfile(resultsDir, 'mc_raw_trials.csv');
+summaryCsvPath = results_file('csv', 'mc_summary_metrics.csv');
+trialsCsvPath  = results_file('csv', 'mc_raw_trials.csv');
 writetable(mcSummaryTable, summaryCsvPath);
 writetable(mcTrialsTable, trialsCsvPath);
 
@@ -300,7 +297,7 @@ mcDistributionResults.elapsed         = elapsed;
 mcDistributionResults.summaryTable    = mcSummaryTable;
 mcDistributionResults.trialsTable     = mcTrialsTable;
 
-savePath = fullfile(resultsDir, 'mc_distribution_results.mat');
+savePath = results_file('mat', 'mc_distribution_results.mat');
 save(savePath, 'mcDistributionResults', 'mcSummaryTable', 'mcTrialsTable');
 
 fprintf('\nMonte Carlo distribution results successfully saved to:\n');
