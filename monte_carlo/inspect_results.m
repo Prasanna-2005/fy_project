@@ -210,12 +210,41 @@ function inspect_results(whichExp)
             attackCsvPath = fullfile(resultsDir, 'attack_summary_metrics.csv');
             writetable(attackSummaryTable, attackCsvPath);
 
+            % Build attack raw trials table
+            attackTrialRows = {};
+            nTrials = size(curveData, 5);
+            for sc = 1:nSc
+                scName = scenarios{sc, 1};
+                for pi = 1:nP
+                    pat = patterns{pi};
+                    for si = 1:nS
+                        strVal = strengths(si);
+                        for mi = 1:nM
+                            mLabel = methods{mi, 3};
+                            for ti = 1:nTrials
+                                row = {string(scName), string(pat), strVal * 100, string(mLabel), ti};
+                                for fi = 1:numel(metricFields)
+                                    row = [row, {curveData(sc, mi, pi, si, ti, fi)}]; %#ok<AGROW>
+                                end
+                                attackTrialRows(end+1, :) = row; %#ok<AGROW>
+                            end
+                        end
+                    end
+                end
+            end
+            trialVarNames = [{'Scenario', 'Pattern', 'Strength_pct', 'Algorithm', 'TrialIndex'}, metricFields];
+            attackTrialsTable = cell2table(attackTrialRows, 'VariableNames', trialVarNames);
+            attackTrialsCsvPath = fullfile(resultsDir, 'attack_raw_trials.csv');
+            writetable(attackTrialsTable, attackTrialsCsvPath);
+
             attackResults = a;
             attackResults.summaryTable = attackSummaryTable;
-            save(atkMatPath, 'attackResults', 'attackSummaryTable');
+            attackResults.trialsTable  = attackTrialsTable;
+            save(atkMatPath, 'attackResults', 'attackSummaryTable', 'attackTrialsTable');
 
             fprintf('\n  Files generated/updated for instant access:\n');
             fprintf('    -> %s (Open in Excel or MATLAB)\n', attackCsvPath);
+            fprintf('    -> %s (Full individual trial breakdown)\n', attackTrialsCsvPath);
         else
             fprintf('\n[EXPERIMENT A] attack_analysis_results.mat not found. Run monte_carlo/run_attack_analysis.m first.\n');
         end

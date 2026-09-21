@@ -237,13 +237,39 @@ for fi = 1:nMetrics
 end
 attackSummaryTable = cell2table(attackRows, 'VariableNames', statVarNames);
 
-% ---- 2. Export CSV File ----
+% ---- 2. Build Attack Raw Trials Table ----
+attackTrialRows = {};
+for sc = 1:nScenarios
+    scName = scenarios{sc, 1};
+    for pi = 1:nPatterns
+        pat = patterns{pi};
+        for si = 1:nStrengths
+            strVal = strengths(si);
+            for mi = 1:nMethods
+                mLabel = methods{mi, 3};
+                for ti = 1:nTrials
+                    row = {string(scName), string(pat), strVal * 100, string(mLabel), ti};
+                    for fi = 1:nMetrics
+                        row = [row, {curveData(sc, mi, pi, si, ti, fi)}]; %#ok<AGROW>
+                    end
+                    attackTrialRows(end+1, :) = row; %#ok<AGROW>
+                end
+            end
+        end
+    end
+end
+trialVarNames = [{'Scenario', 'Pattern', 'Strength_pct', 'Algorithm', 'TrialIndex'}, metricFields];
+attackTrialsTable = cell2table(attackTrialRows, 'VariableNames', trialVarNames);
+
+% ---- 3. Export CSV Files ----
 resultsDir = fullfile(baseDir, 'results');
 if ~exist(resultsDir, 'dir'), mkdir(resultsDir); end
-attackCsvPath = fullfile(resultsDir, 'attack_summary_metrics.csv');
+attackCsvPath       = fullfile(resultsDir, 'attack_summary_metrics.csv');
+attackTrialsCsvPath = fullfile(resultsDir, 'attack_raw_trials.csv');
 writetable(attackSummaryTable, attackCsvPath);
+writetable(attackTrialsTable, attackTrialsCsvPath);
 
-% ---- 3. Save MAT file with table included ----
+% ---- 4. Save MAT file with tables included ----
 attackResults = struct();
 attackResults.curveData    = curveData;
 attackResults.methods      = methods;
@@ -254,11 +280,13 @@ attackResults.nTrials      = nTrials;
 attackResults.metricFields = metricFields;
 attackResults.elapsed      = elapsed;
 attackResults.summaryTable = attackSummaryTable;
+attackResults.trialsTable  = attackTrialsTable;
 
 matPath = fullfile(resultsDir, 'attack_analysis_results.mat');
-save(matPath, 'attackResults', 'attackSummaryTable');
+save(matPath, 'attackResults', 'attackSummaryTable', 'attackTrialsTable');
 
 fprintf('\nExperiment A results successfully saved to:\n');
-fprintf('  - MAT File: %s (includes attackSummaryTable)\n', matPath);
+fprintf('  - MAT File: %s (includes attackSummaryTable & attackTrialsTable)\n', matPath);
 fprintf('  - Summary CSV: %s (open directly in Excel/Sheets)\n', attackCsvPath);
+fprintf('  - Raw Trials CSV: %s\n', attackTrialsCsvPath);
 fprintf('Total runtime: %.1fs\n\n', elapsed);
