@@ -8,12 +8,13 @@ function plot_summary_scorecards()
     thisDir = fileparts(mfilename('fullpath'));
     addpath(thisDir);
 
-    methodOrder = {'RRAM', 'BDTR', 'SROM', 'Hungarian'};
+    methodOrder = {'RRAM', 'BDTR', 'SROM', 'Hungarian', 'SABR'};
     methodColors = [ ...
         0.45, 0.45, 0.45; ...
         0.85, 0.33, 0.10; ...
         0.00, 0.45, 0.74; ...
-        0.47, 0.67, 0.19];
+        0.47, 0.67, 0.19; ...
+        0.49, 0.18, 0.56];
 
     mcCsv = results_locate('csv', 'mc_summary_metrics.csv');
     atkCsv = results_locate('csv', 'attack_summary_metrics.csv');
@@ -40,7 +41,7 @@ function plotMonteCarloScorecard(mcCsv, pngDir, methodOrder)
         'Large  (10 UAVs, 3 payloads, 120 tasks)'};
 
     hFig = figure('Name', 'Experiment B: Monte Carlo summary', ...
-        'Color', 'w', 'Visible', 'off', 'Position', [80, 80, 1480, 860]);
+        'Color', 'w', 'Visible', 'off', 'Position', [80, 80, 1680, 920]);
     tl = tiledlayout(hFig, 2, 2, 'Padding', 'compact', 'TileSpacing', 'compact');
     title(tl, 'Experiment B  —  Monte Carlo summary   (N = 300,  30% random payload attack)', ...
         'FontSize', 15, 'FontWeight', 'bold', 'Color', [0 0 0]);

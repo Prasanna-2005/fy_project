@@ -1,7 +1,7 @@
 %% SMOKE_TEST  Rapid Developer Sanity-Check (1-Shot Deterministic Run)
 %
 % Executes a fast, single-iteration headless simulation (~1.5s runtime) across:
-%   - All 4 Baseline Solvers: 1_RRAM, 2_BDTR, 3_HUNGARIAN_REACTIVE, 4_SROM
+%   - All 5 solvers: 1_RRAM, 2_BDTR, 3_SROM, 4_HUNGARIAN, 5_SABR
 %   - Both Scenarios: Scenario 1 (Small: 5 UAVs, 80 tasks), Scenario 2 (Large: 10 UAVs, 120 tasks)
 %
 % PURPOSE:
@@ -27,7 +27,8 @@ cases = {
     '1_RRAM',          'rram',     'RRAM (Baseline)';
     '2_BDTR',          'bdtr',     'BDTR (Baseline)';
     '3_SROM',          'srom',     'SROM (Baseline)';
-    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)'
+    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
+    '5_SABR',          'sabr',     'SABR'
 };
 
 scenarios = {
@@ -71,5 +72,5 @@ for sc = 1:size(scenarios, 1)
 end
 
 fprintf('\n%s\n', repmat('=', 1, 121));
-fprintf('[PASS] Smoke test completed successfully across all 4 algorithms and 2 scenarios.\n\n');
+fprintf('[PASS] Smoke test completed successfully across all 5 algorithms and 2 scenarios.\n\n');
 cd(baseDir);

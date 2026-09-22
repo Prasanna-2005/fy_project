@@ -1,5 +1,5 @@
-%% RUN_ALL_BASELINES  Run and compare all 4 baseline methods.
-% Executes 1_RRAM, 2_BDTR, 3_HUNGARIAN_REACTIVE, and 4_SROM on the
+%% RUN_ALL_BASELINES  Run and compare all five allocation methods.
+% Executes 1_RRAM, 2_BDTR, 3_SROM, 4_HUNGARIAN, and 5_SABR on the
 % canonical scenario and prints a comparative summary table.
 
 clear; clc; close all;
@@ -14,7 +14,8 @@ cases = {
     '1_RRAM',          'rram',     'RRAM (Baseline)';
     '2_BDTR',          'bdtr',     'BDTR (Baseline)';
     '3_SROM',          'srom',     'SROM (Baseline)';
-    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)'
+    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
+    '5_SABR',          'sabr',     'SABR'
 };
 
 results = struct();

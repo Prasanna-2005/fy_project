@@ -4,7 +4,7 @@
 %   - 3 Attack Patterns: Random, Balanced, Directed (Payload-Targeted)
 %   - 3 Interruption Strengths: 20%, 30%, 40%
 %   - 2 Scenarios: Scenario 1 (Small: 5 UAVs / 80 tasks), Scenario 2 (Large: 10 UAVs / 120 tasks)
-%   - 3 Baselines (RRAM, BDTR, SROM) + Our Strategy (Reactive Hungarian)
+%   - 3 Baselines (RRAM, BDTR, SROM) + Hungarian + SABR
 %
 % Produces:
 %   1. Degradation curves: CRI and Completion Rate vs. Interruption Strength
@@ -20,12 +20,13 @@ addpath(fullfile(baseDir, 'common'));
 warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
 cleanupWarn = onCleanup(@() warning(warnState));
 
-% ---- Methods to evaluate (3 baselines + our strategy) ----
+% ---- Methods to evaluate (3 baselines + Hungarian + SABR) ----
 methods = {
     '1_RRAM',          'rram',     'RRAM';
     '2_BDTR',          'bdtr',     'BDTR';
     '3_SROM',          'srom',     'SROM';
-    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)'
+    '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
+    '5_SABR',          'sabr',     'SABR'
 };
 nMethods = size(methods, 1);
 
@@ -163,9 +164,9 @@ end
 
 try
     hFig = figure('Name', 'Experiment A: Degradation Curves', 'Position', [100, 100, 1200, 700], 'Visible', 'off');
-    methodColors = {[0.2, 0.2, 0.2], [0.85, 0.33, 0.1], [0.0, 0.45, 0.74], [0.47, 0.67, 0.19]};
-    lineStyles   = {'--', '-', '-.', ':'};
-    markers      = {'o', 's', '^', 'd'};
+    methodColors = {[0.2, 0.2, 0.2], [0.85, 0.33, 0.1], [0.0, 0.45, 0.74], [0.47, 0.67, 0.19], [0.49, 0.18, 0.56]};
+    lineStyles   = {'--', '-', '-.', ':', '-'};
+    markers      = {'o', 's', '^', 'd', 'v'};
 
     plotIdx = 1;
     for sc = 1:nScenarios

@@ -2,7 +2,7 @@
 
 **Project Goal:** Reproduce and benchmark the algorithms from Zeng, Wu, Li, Zhuang (IEEE Systems Journal 2026): *"Enhancing UAV Swarm Resilience to Payload Failures: A Bidirectional Task Reallocation Approach"* (BDTR).
 
-**Our Strategy:** Reactive Hungarian — a centralized LAP-based assignment with snapshot cost minimization, evaluated against 3 literature baselines (RRAM, BDTR, SROM) in a controlled, fair comparison environment.
+**Our Strategy:** SABR (State-Aware Bidirectional Reallocation) — Reactive Hungarian assignment as Phase 1, plus a deadline-aware bidirectional transfer rule as Phase 2. Evaluated against RRAM, BDTR, SROM, and the Hungarian allocator alone.
 
 **Last Updated:** 2026-09-21
 
@@ -24,7 +24,10 @@ code/
 │   ├── 3_SROM/             ← Baseline 3: Li et al. 2023 Algorithm 1
 │   │   ├── main.m
 │   │   └── sim.m
-│   ├── 4_HUNGARIAN/        ← OUR STRATEGY: Reactive Hungarian (LAP)
+│   ├── 4_HUNGARIAN/        ← Reactive Hungarian (LAP), Phase 1 of SABR
+│   │   ├── main.m
+│   │   └── sim.m
+│   ├── 5_SABR/             ← OUR STRATEGY: State-Aware Bidirectional Reallocation
 │   │   ├── main.m
 │   │   └── sim.m
 │   ├── common/             ← Shared config, rendering, metrics
@@ -32,7 +35,7 @@ code/
 │   │   ├── initRender.m
 │   │   ├── renderFrame.m
 │   │   └── compute_paper_metrics.m
-│   └── run_all_baselines.m ← Runs all 4 methods with fast-mode visual comparison
+│   └── run_all_baselines.m ← Runs all 5 methods with fast-mode visual comparison
 │
 ├── monte_carlo/            ← Headless Experimental Suite (Batch Benchmarking)
 │   ├── 1_RRAM/             ← Baseline 1
@@ -44,7 +47,10 @@ code/
 │   ├── 3_SROM/             ← Baseline 3
 │   │   ├── main.m
 │   │   └── sim.m
-│   ├── 4_HUNGARIAN/        ← OUR STRATEGY
+│   ├── 4_HUNGARIAN/        ← Reactive Hungarian (LAP)
+│   │   ├── main.m
+│   │   └── sim.m
+│   ├── 5_SABR/             ← OUR STRATEGY: SABR
 │   │   ├── main.m
 │   │   └── sim.m
 │   ├── common/             ← Shared config, metrics, attack event generator
@@ -73,7 +79,8 @@ code/
 | 1 | `1_RRAM` | Random Resource Allocation | **Baseline** | Constructed from BDTR paper behavioral description (see §1 below) |
 | 2 | `2_BDTR` | Bidirectional Task Reallocation | **Baseline** | Zeng et al. 2026 — extracted (2 pseudocode typos corrected, see §2 below) |
 | 3 | `3_SROM` | Soft Resource Optimization | **Baseline** | Li et al. 2023 Algorithm 1 (binary failure + permutation search) |
-| 4 | `4_HUNGARIAN` | Reactive Hungarian (LAP) | **Our Strategy** | Project's centralized LAP-based allocator (see §3 below) |
+| 4 | `4_HUNGARIAN` | Reactive Hungarian (LAP) | Phase 1 of SABR | Project's centralized LAP-based allocator (see §3) |
+| 5 | `5_SABR` | State-Aware Bidirectional Reallocation | **Our Strategy** | Hungarian Phase 1 + deadline-aware Phase 2 (see §8) |
 
 ---
 
@@ -83,7 +90,7 @@ code/
 - **Purpose:** Qualitative visual verification — Ground Control Station (GCS) live 3D animation.
 - **Scenario:** Canonical 4 UAVs, 3 Capabilities (Camera, Thermal, LiDAR), 10 Tasks.
 - **Disruption:** Hardcoded 3-event capability loss schedule (t = 20s, 35s, 50s) in `common_config.m`.
-- **Status:** ✅ PASS — All 4 methods execute cleanly with visualization.
+- **Status:** ✅ PASS — All 5 methods execute cleanly with visualization.
 
 ### Monte Carlo (`monte_carlo/`)
 - **Purpose:** Headless batch benchmarking matching Table II of Zeng et al. (2026).
@@ -98,13 +105,13 @@ code/
 
 #### Experiment B: `run_monte_carlo.m`
 - Authentic Monte Carlo benchmark: N_sim = 300 independent runs per scenario (Table II scale).
-- `common_config.m` accepts `taskSeed` so each run has a unique, independent stochastic task set while guaranteeing paired comparison across all 4 methods via Common Random Numbers (CRN).
+- `common_config.m` accepts `taskSeed` so each run has a unique, independent stochastic task set while guaranteeing paired comparison across all 5 methods via Common Random Numbers (CRN).
 - Nominal attack: 30% random payload degradation (fixed budget; randomized UAV/slot/timing per run).
 - Reports Mean ± Std and Medians for: completionRate, CRI, R_task, R_time, throughputRecovery.
 - Saves to `results/mat/`, `results/png/`, and `results/csv/`.
 
 #### Utilities
-- **`smoke_test.m`**: Rapid 1-shot sanity-check (~1.5s) — verifies all 4 methods execute cleanly after code modifications. Not for publication data.
+- **`smoke_test.m`**: Rapid 1-shot sanity-check — verifies all 5 methods execute cleanly after code modifications. Not for publication data.
 - **`inspect_results.m`**: Post-experiment metrics viewer. Loads `.mat` files, prints formatted tables, and exports/refreshes CSV files for Excel viewing. Usage: `inspect_results`, `inspect_results('mc')`, `inspect_results('atk')`.
 
 ---
@@ -134,10 +141,10 @@ Flight maneuverability (T_fly) and communication latency (τ_comm) are **exclude
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Prototype (visual) | ✅ PASS | All 4 methods animate cleanly |
-| Smoke test (monte_carlo) | ✅ PASS | All 4 methods × 2 scenarios execute headlessly |
-| Experiment A (Attack Analysis) | ✅ PASS | 144+ smoke-test sims completed; degradation curves plotted |
-| Experiment B (Monte Carlo) | ✅ PASS | 24+ smoke-test sims completed; distribution charts plotted |
+| Prototype (visual) | ✅ PASS | All 5 methods present; `5_SABR` analyzer-clean |
+| Smoke test (monte_carlo) | ✅ PASS | SABR exercised inside the N = 300 rerun |
+| Experiment A (Attack Analysis) | ✅ PASS | 5 methods × 2 scenarios × 3 patterns × 3 strengths × 10 trials |
+| Experiment B (Monte Carlo) | ✅ PASS | N = 300, SABR ahead of BDTR on CRI and R_task in both scenarios |
 | MATLAB Code Analyzer | ✅ 0 errors, 0 warnings | Only info-level perf hints (preallocate, logical indexing) |
 | Plotting | ✅ Base MATLAB compatible | Uses bar, errorbar, plot — no Statistics Toolbox dependency |
 
@@ -164,6 +171,10 @@ Flight maneuverability (T_fly) and communication latency (τ_comm) are **exclude
 - Verified all 4 methods across both scenarios with smoke tests.
 
 ---
+
+### 2026-09-21 — SABR (method 5)
+- Added `5_SABR` in `prototype/` and `monte_carlo/`. Phase 1 is the locked Reactive Hungarian allocator. Phase 2 replaces BDTR's load-gap swap. Methods 1–4 were not edited. Wired into `run_monte_carlo.m`, `run_attack_analysis.m`, `smoke_test.m`, `plot_summary_scorecards.m`, and `prototype/run_all_baselines.m`.
+- N = 300 Monte Carlo, 30% random attack, common random numbers. SABR vs BDTR: small completion 70.55% vs 65.53%, CRI 0.771 vs 0.762, R_task 0.753 vs 0.732, R_time 0.788 vs 0.791. Large completion 73.99% vs 62.92%, CRI 0.670 vs 0.636, R_task 0.755 vs 0.688, R_time 0.586 vs 0.584. Full table in §8. The rerun reproduces the previous RRAM/BDTR/SROM/Hungarian rows.
 
 ## Algorithm Specifications
 
@@ -362,3 +373,43 @@ Deterministic, reproducible resolution across all four algorithms:
 
 **RRAM Construction:**
 > "RRAM (cited by Zeng et al. 2026 as ref [30]) is attributed to Moshksar, Bayesteh & Khandani (2011), an information-theoretic paper containing no task-allocation algorithm. We construct RRAM from the BDTR paper's own behavioral description: a zero-information baseline that randomly selects a capable UAV for each unassigned task without load-balancing checks."
+
+---
+
+### §8. SABR — Point of Departure from BDTR
+
+SABR keeps BDTR's two-phase shape and replaces only Phase 2. Phase 1 is the Reactive Hungarian allocator already in `4_HUNGARIAN`: capability-masked cost matrix, Hungarian matching, dummy-cost AtRisk classification, then the existing preemption pipeline (feasibility gate, deadline-safety gate, min-cost selection, lexicographic tie-break). On a degradation the at-risk pool is drained with the same multi-round loop the Hungarian method already uses at t = 0, because one LAP round assigns at most one task per UAV.
+
+Phase 2 does not use BDTR's trigger `|Q_donor| − |Q_recipient| ≤ 1`. A donor→recipient move of task k is admissible only when all of the following hold:
+
+1. k is not already executing (arrival recorded and elapsed time > 0). This is a hard filter. The local BDTR code already skips an actively executing head task; the paper pseudocode does not. SABR applies the filter to every candidate, not only the queue head.
+2. The recipient's *remaining* payload set covers Ψ(k). A UAV that lost Thermal and kept Camera is still a legal Camera recipient or donor. BDTR Phase 2 checks this only for the failed UAV as recipient, and it picks the donor by raw queue length first.
+3. Predicted completion of k on the recipient is at or before k's deadline, and no task already on the recipient is made newly late. The prediction walks the queue (travel plus execution), which is the same deadline test the preemption gate uses (`t + T ≤ d`).
+
+Among admissible moves the one committed is
+
+ΔJ = 10 · Resolved − 1 · ΔTransferCost − 0.15 · ΔLoadImbalance
+
+Resolved is the total priority of tasks that flip from predicted-late to predicted-on-time. A pure overload shed (donor queue above nominal capacity, gap of at least 2, no deadline flip) is scored as Resolved = 0.2, so a real deadline save always outranks load shuffling. Ties break by lowest task index, then lowest donor index, then lowest recipient index, then earliest insert slot.
+
+What that changes relative to the five ideas in the design brief, measured on the N = 300 Monte Carlo (30% random payload attack, common random numbers). Methods 1–4 reproduce the previous summary to the reported rounding, so the SABR rows are a paired comparison.
+
+| | Small completion | Small CRI | Small R_task | Small R_time | Large completion | Large CRI | Large R_task | Large R_time |
+|---|---|---|---|---|---|---|---|---|
+| BDTR | 65.53% | 0.762 | 0.732 | 0.791 | 62.92% | 0.636 | 0.688 | 0.584 |
+| Hungarian | 61.96% | 0.722 | 0.671 | 0.774 | 62.83% | 0.608 | 0.633 | 0.583 |
+| SABR | **70.55%** | **0.771** | **0.753** | 0.788 | **73.99%** | **0.670** | **0.755** | **0.586** |
+
+SABR is ahead of BDTR on completion, CRI, and R_task in both scenarios, and on salvage fraction (0.337 vs 0.277 small, 0.362 vs 0.153 large). The one miss is small-scenario R_time (0.788 vs 0.791).
+
+| Idea | In SABR? | What actually moved the metrics |
+|---|---|---|
+| Multi-factor ΔJ instead of the load-gap trigger | Yes. This is the Phase 2 rule. | This is the departure that beats BDTR. BDTR moves the earliest feasible task on the heaviest donor whenever the queues differ by 2 or more, including tasks that were going to meet their deadline. SABR's weight on Resolved is 10 against 1 and 0.15, so a deadline save is taken and a pure reshuffle usually is not. A pilot with this rule alone already led BDTR on both completion rates and on large-scenario CRI and R_task. |
+| Deadline gate on every transfer | Yes, hard. | Same pilot. Transfers that would make a recipient task newly late are rejected. That is the completion gap versus both Hungarian and BDTR, and it is why salvage rises (more of the at-risk set actually finishes). |
+| In-progress tasks non-transferable | Yes, hard. | Kept, because the paper's Phase 2 has no such filter. It does not explain the gap versus *this* BDTR code, which already refuses to pull an executing head task. |
+| Remaining capability, not raw \|Q\| | Yes. Every UAV whose surviving payloads cover Ψ(k) is a candidate recipient, not only u_fail. | Required so a Thermal loss does not retire the UAV's Camera. It does not beat BDTR on its own: BDTR already tests Ψ(q) ⊆ Φ_eff(u_fail). The extra recipients are what let a Camera task move onto a non-failed UAV that still has Camera and slack. |
+| Periodic Phase 2 | No. | Not used. Phase 2 runs on each payload loss. Later losses therefore see the rebalanced queues, which is enough. A timer would change the trigger rather than the rule. |
+
+The small-scenario R_task gap that remained after the first Phase 2 pilot (SABR still a few thousandths behind BDTR on 8 seeds) closed once two further choices were added: Resolved is the sum of *priorities* of tasks that flip from late to on-time, and the at-risk pool is drained with the same multi-round LAP loop Hungarian already uses at t = 0. `4_HUNGARIAN` fires that allocator only once per degradation, so at most one task per UAV leaves the at-risk set. BDTR's Phase 1 already walks every invalid task, so the multi-round loop is parity with BDTR there, not a new mechanism. It does matter for the comparison against Hungarian.
+
+Small-scenario R_time is the deliberate cost of refusing deadline-irrelevant swaps. BDTR's load-gap rule equalizes queues slightly sooner, so the swarm exits the overload regime (max |Q_i| ≤ nominal capacity) a little earlier. The R_task gain is larger than that R_time loss, which is why CRI still rises (0.771 vs 0.762 small, 0.670 vs 0.636 large).
