@@ -3,7 +3,7 @@
 % Executes the authentic Monte Carlo protocol from Zeng et al. (2026):
 %   - Scenario 1 (Small): 5 UAVs, 2 Payloads, 80 Tasks
 %   - Scenario 2 (Large): 10 UAVs, 3 Payloads, 120 Tasks
-%   - 3 Baselines (RRAM, BDTR, SROM) + Hungarian + SABR
+%   - 3 Baselines (RRAM, BDTR, SROM) + Hungarian + SABR + CARA
 %   - 300 independent stochastic runs per scenario (randomized task generation & failures)
 %   - Produces empirical distributions and statistical summaries of:
 %       * Mission Completion Rate (Paper: BDTR 0.829, RRAM 0.803, SROM 0.225)
@@ -27,13 +27,14 @@ if nRuns < 300
     fprintf('\n[NOTE] Running fast check with %d runs (paper scale is 300).\n', nRuns);
 end
 
-% ---- Method definitions (3 baselines + Hungarian + SABR) ----
+% ---- Method definitions (3 baselines + Hungarian + SABR + CARA) ----
 methods = {
     '1_RRAM',          'rram',     'RRAM';
     '2_BDTR',          'bdtr',     'BDTR';
     '3_SROM',          'srom',     'SROM';
     '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
-    '5_SABR',          'sabr',     'SABR'
+    '5_SABR',          'sabr',     'SABR';
+    '6_CARA',          'cara',      'CARA'
 };
 nMethods = size(methods, 1);
 

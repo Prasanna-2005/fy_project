@@ -4,7 +4,7 @@
 %   - 3 Attack Patterns: Random, Balanced, Directed (Payload-Targeted)
 %   - 3 Interruption Strengths: 20%, 30%, 40%
 %   - 2 Scenarios: Scenario 1 (Small: 5 UAVs / 80 tasks), Scenario 2 (Large: 10 UAVs / 120 tasks)
-%   - 3 Baselines (RRAM, BDTR, SROM) + Hungarian + SABR
+%   - 3 Baselines (RRAM, BDTR, SROM) + Hungarian + SABR + CARA
 %
 % Produces:
 %   1. Degradation curves: CRI and Completion Rate vs. Interruption Strength
@@ -20,13 +20,14 @@ addpath(fullfile(baseDir, 'common'));
 warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
 cleanupWarn = onCleanup(@() warning(warnState));
 
-% ---- Methods to evaluate (3 baselines + Hungarian + SABR) ----
+% ---- Methods to evaluate (3 baselines + Hungarian + SABR + CARA) ----
 methods = {
     '1_RRAM',          'rram',     'RRAM';
     '2_BDTR',          'bdtr',     'BDTR';
     '3_SROM',          'srom',     'SROM';
     '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
-    '5_SABR',          'sabr',     'SABR'
+    '5_SABR',          'sabr',     'SABR';
+    '6_CARA',          'cara',      'CARA'
 };
 nMethods = size(methods, 1);
 

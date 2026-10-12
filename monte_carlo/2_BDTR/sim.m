@@ -354,61 +354,8 @@ end
 %% ======================= MOVEMENT =======================
 
 function [uavs, tasks] = moveFleet(uavs, tasks, t, dt, cfg)
-% BDTR-specific moveFleet: applies overload discount delta (Eq. 2 eta_i(t))
-% When |Q_i| > nominalCapacity, UAV executes tasks slower by factor delta.
-delta = 0.9;
-nomCap = 3;
-if nargin >= 5 && isfield(cfg, 'bdtr')
-    if isfield(cfg.bdtr, 'delta'), delta = cfg.bdtr.delta; end
-    if isfield(cfg.bdtr, 'nominalCapacity'), nomCap = cfg.bdtr.nominalCapacity; end
-end
-
-for i = 1:numel(uavs)
-    j = uavs(i).assignedTask;
-    if j == 0
-        if ~isempty(uavs(i).queue)
-            uavs(i).assignedTask = uavs(i).queue(1);
-            j = uavs(i).assignedTask;
-        else
-            continue;
-        end
-    end
-    target = tasks(j).location;
-    p = uavs(i).position;
-    d = norm(target - p);
-    if d > 1e-6
-        step = uavs(i).speed * dt;
-        if step >= d
-            uavs(i).position = target;
-        else
-            uavs(i).position = p + (target - p) / d * step;
-        end
-    end
-    if norm(uavs(i).position - target) < 1e-6
-        if ~isFeasible(tasks(j).requiredCap, uavs(i).capabilities)
-            continue;
-        end
-        if isnan(tasks(j).arrivalTime)
-            tasks(j).arrivalTime = t;
-        end
-        % Apply overload discount: if queue > nominal capacity,
-        % effective exec time increases by 1/delta (UAV works slower)
-        effectiveExecTime = tasks(j).execTime;
-        if numel(uavs(i).queue) > nomCap
-            effectiveExecTime = tasks(j).execTime / delta;
-        end
-        if (t - tasks(j).arrivalTime) >= effectiveExecTime
-            tasks(j).status = 'complete';
-            tasks(j).completeTime = t;
-            uavs(i).queue = uavs(i).queue(uavs(i).queue ~= j);
-            if ~isempty(uavs(i).queue)
-                uavs(i).assignedTask = uavs(i).queue(1);
-            else
-                uavs(i).assignedTask = 0;
-            end
-        end
-    end
-end
+% Shared step: same flight rule and overload stretch for every method.
+[uavs, tasks] = move_fleet_step(uavs, tasks, t, dt, cfg);
 end
 
 %% ======================= METRICS =======================

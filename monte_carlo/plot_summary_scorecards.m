@@ -8,13 +8,14 @@ function plot_summary_scorecards()
     thisDir = fileparts(mfilename('fullpath'));
     addpath(thisDir);
 
-    methodOrder = {'RRAM', 'BDTR', 'SROM', 'Hungarian', 'SABR'};
+    methodOrder = {'RRAM', 'BDTR', 'SROM', 'Hungarian', 'SABR', 'CARA'};
     methodColors = [ ...
         0.45, 0.45, 0.45; ...
         0.85, 0.33, 0.10; ...
         0.00, 0.45, 0.74; ...
         0.47, 0.67, 0.19; ...
-        0.49, 0.18, 0.56];
+        0.49, 0.18, 0.56; ...
+        0.64, 0.16, 0.16];
 
     mcCsv = results_locate('csv', 'mc_summary_metrics.csv');
     atkCsv = results_locate('csv', 'attack_summary_metrics.csv');
@@ -77,6 +78,9 @@ end
 function plotAttackScorecard(atkCsv, pngDir, methodOrder, methodColors)
     T = readtable(atkCsv);
     T.ShortName = shortenMethodNames(T.Algorithm);
+    present = ismember(methodOrder, cellstr(T.ShortName));
+    methodOrder = methodOrder(present);
+    methodColors = methodColors(present, :);
     strengths = [20, 30, 40];
     scenarios = {'small', 'large'};
     scTitles = { ...
@@ -249,12 +253,10 @@ function names = shortenMethodNames(raw)
 end
 
 function sub = sortMethods(sub, methodOrder)
-    idx = zeros(numel(methodOrder), 1);
-    for i = 1:numel(methodOrder)
-        hit = find(strcmp(sub.ShortName, methodOrder{i}), 1);
-        if isempty(hit)
-            error('plot_summary_scorecards:missingMethod', 'No row for %s', methodOrder{i});
-        end
+    present = methodOrder(ismember(methodOrder, cellstr(sub.ShortName)));
+    idx = zeros(numel(present), 1);
+    for i = 1:numel(present)
+        hit = find(strcmp(sub.ShortName, present{i}), 1);
         idx(i) = hit;
     end
     sub = sub(idx, :);

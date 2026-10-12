@@ -1,0 +1,191 @@
+
+=========================================================================================================
+  EXPERIMENT B: MONTE CARLO STATISTICAL BENCHMARK (N = 300 Independent Runs)
+  2 Scenarios × 5 Methods × 300 Runs = 3000 Total Headless Simulations
+=========================================================================================================
+
+
+#########################################################################################################
+  BEGINNING SCENARIO 1 (SMALL: 5 UAVS, 2 PAYLOADS, 80 TASKS) (300 RUNS)
+#########################################################################################################
+
+  [small] Completed run  30/300 (Total:  150/3000, 11.3 sims/s, ~252s remaining)
+  [small] Completed run  60/300 (Total:  300/3000, 11.8 sims/s, ~228s remaining)
+  [small] Completed run  90/300 (Total:  450/3000, 11.7 sims/s, ~219s remaining)
+  [small] Completed run 120/300 (Total:  600/3000, 11.7 sims/s, ~204s remaining)
+  [small] Completed run 150/300 (Total:  750/3000, 11.7 sims/s, ~192s remaining)
+  [small] Completed run 180/300 (Total:  900/3000, 11.7 sims/s, ~179s remaining)
+  [small] Completed run 210/300 (Total: 1050/3000, 11.7 sims/s, ~166s remaining)
+  [small] Completed run 240/300 (Total: 1200/3000, 11.7 sims/s, ~154s remaining)
+  [small] Completed run 270/300 (Total: 1350/3000, 11.6 sims/s, ~143s remaining)
+  [small] Completed run 300/300 (Total: 1500/3000, 11.5 sims/s, ~130s remaining)
+
+#########################################################################################################
+  BEGINNING SCENARIO 2 (LARGE: 10 UAVS, 3 PAYLOADS, 120 TASKS) (300 RUNS)
+#########################################################################################################
+
+  [large] Completed run  30/300 (Total: 1650/3000, 10.1 sims/s, ~134s remaining)
+  [large] Completed run  60/300 (Total: 1800/3000, 9.3 sims/s, ~129s remaining)
+  [large] Completed run  90/300 (Total: 1950/3000, 8.8 sims/s, ~120s remaining)
+  [large] Completed run 120/300 (Total: 2100/3000, 8.3 sims/s, ~108s remaining)
+  [large] Completed run 150/300 (Total: 2250/3000, 8.0 sims/s, ~94s remaining)
+  [large] Completed run 180/300 (Total: 2400/3000, 7.7 sims/s, ~78s remaining)
+  [large] Completed run 210/300 (Total: 2550/3000, 7.5 sims/s, ~60s remaining)
+  [large] Completed run 240/300 (Total: 2700/3000, 7.3 sims/s, ~41s remaining)
+  [large] Completed run 270/300 (Total: 2850/3000, 7.1 sims/s, ~21s remaining)
+  [large] Completed run 300/300 (Total: 3000/3000, 7.0 sims/s, ~0s remaining)
+
+
+=========================================================================================================
+                 EXPERIMENT B: MONTE CARLO STATISTICAL SUMMARY (N = 300 runs)
+                 Total Elapsed Time: 426.5s | Mean Rate: 7.0 sims/s
+=========================================================================================================
+
+=========================================================================================================
+  SCENARIO: SCENARIO 1 (SMALL: 5 UAVS, 2 PAYLOADS, 80 TASKS)
+=========================================================================================================
+Method       | CompletionRate   | CRI (Resilience) | R_task           | R_time           | ThroughputRecov 
+             | mean ± std [med] | mean ± std [med] | mean ± std [med] | mean ± std [med] | mean ± std [med]
+--------------------------------------------------------------------------------------------------
+RRAM         |  41.3%± 5.4% [41.2%] | 0.524±0.091 [0.516] | 0.397±0.062 [0.394] | 0.651±0.154 [0.627] | 0.340±0.371 [0.250]
+BDTR         |  65.5%± 3.1% [66.2%] | 0.762±0.068 [0.772] | 0.732±0.033 [0.736] | 0.791±0.131 [0.805] | 0.277±0.085 [0.273]
+SROM         |  59.1%± 4.0% [58.8%] | 0.752±0.079 [0.756] | 0.683±0.046 [0.685] | 0.820±0.144 [0.843] | 0.152±0.083 [0.150]
+Hungarian (Ours) |  60.0%± 5.3% [60.0%] | 0.710±0.075 [0.705] | 0.650±0.063 [0.657] | 0.769±0.132 [0.769] | 0.191±0.159 [0.167]
+SABR         |  70.5%± 5.6% [71.2%] | 0.763±0.068 [0.766] | 0.741±0.057 [0.745] | 0.785±0.129 [0.793] | 0.372±0.196 [0.375]
+--------------------------------------------------------------------------------------------------
+  * Paper Reported Targets (Zeng et al. 2026 Table II / Abstract):
+    - BDTR: CompRate = 82.9%, CRI = 0.862
+    - RRAM: CompRate = 80.3%, CRI = 0.347
+    - SROM: CompRate = 22.5%, CRI = 0.426
+
+=========================================================================================================
+  SCENARIO: SCENARIO 2 (LARGE: 10 UAVS, 3 PAYLOADS, 120 TASKS)
+=========================================================================================================
+Method       | CompletionRate   | CRI (Resilience) | R_task           | R_time           | ThroughputRecov 
+             | mean ± std [med] | mean ± std [med] | mean ± std [med] | mean ± std [med] | mean ± std [med]
+--------------------------------------------------------------------------------------------------
+RRAM         |  38.6%± 5.4% [37.5%] | 0.446±0.041 [0.444] | 0.379±0.063 [0.362] | 0.513±0.051 [0.509] | 0.268±0.145 [0.247]
+BDTR         |  62.9%± 3.3% [63.3%] | 0.636±0.039 [0.631] | 0.688±0.037 [0.689] | 0.584±0.071 [0.578] | 0.153±0.086 [0.143]
+SROM         |  49.9%± 3.8% [50.0%] | 0.592±0.047 [0.587] | 0.576±0.049 [0.574] | 0.608±0.084 [0.601] | 0.056±0.053 [0.047]
+Hungarian (Ours) |  60.9%± 4.2% [60.8%] | 0.597±0.040 [0.592] | 0.611±0.049 [0.616] | 0.582±0.065 [0.577] | 0.246±0.116 [0.238]
+SABR         |  73.7%± 4.2% [74.2%] | 0.663±0.039 [0.661] | 0.742±0.048 [0.744] | 0.585±0.069 [0.578] | 0.411±0.146 [0.407]
+--------------------------------------------------------------------------------------------------
+  * Paper Reported Targets (Zeng et al. 2026 Table II / Abstract):
+    - BDTR: CompRate = 82.9%, CRI = 0.862
+    - RRAM: CompRate = 80.3%, CRI = 0.347
+    - SROM: CompRate = 22.5%, CRI = 0.426
+
+Monte Carlo distribution plots successfully saved to: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\png\mc_distributions.png
+
+Monte Carlo distribution results successfully saved to:
+  - MAT File: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\mat\mc_distribution_results.mat (includes mcSummaryTable & mcTrialsTable)
+  - Summary CSV: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\csv\mc_summary_metrics.csv (open directly in Excel/Sheets)
+  - Raw Trials CSV: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\csv\mc_raw_trials.csv
+Total runtime: 426.5 seconds
+
+
+=========================================================================================================
+  EXPERIMENT A: PARAMETRIC ATTACK & DEGRADATION ANALYSIS
+  2 Scenarios × 5 Methods × 3 Patterns × 3 Strengths × 10 Trials = 900 Total Simulations
+=========================================================================================================
+
+
+>>> Executing SCENARIO 1 (SMALL: 5 UAVS, 2 PAYLOADS, 80 TASKS) ...
+    Pattern: random    | Strength: 20% | Completed 50/900 (10.9 sims/s)
+    Pattern: random    | Strength: 30% | Completed 100/900 (11.0 sims/s)
+    Pattern: random    | Strength: 40% | Completed 150/900 (11.1 sims/s)
+    Pattern: balanced  | Strength: 20% | Completed 200/900 (11.1 sims/s)
+    Pattern: balanced  | Strength: 30% | Completed 250/900 (11.2 sims/s)
+    Pattern: balanced  | Strength: 40% | Completed 300/900 (11.1 sims/s)
+    Pattern: directed  | Strength: 20% | Completed 350/900 (11.1 sims/s)
+    Pattern: directed  | Strength: 30% | Completed 400/900 (11.1 sims/s)
+    Pattern: directed  | Strength: 40% | Completed 450/900 (11.1 sims/s)
+
+>>> Executing SCENARIO 2 (LARGE: 10 UAVS, 3 PAYLOADS, 120 TASKS) ...
+    Pattern: random    | Strength: 20% | Completed 500/900 (10.1 sims/s)
+    Pattern: random    | Strength: 30% | Completed 550/900 (9.2 sims/s)
+    Pattern: random    | Strength: 40% | Completed 600/900 (8.3 sims/s)
+    Pattern: balanced  | Strength: 20% | Completed 650/900 (8.0 sims/s)
+    Pattern: balanced  | Strength: 30% | Completed 700/900 (7.7 sims/s)
+    Pattern: balanced  | Strength: 40% | Completed 750/900 (7.4 sims/s)
+    Pattern: directed  | Strength: 20% | Completed 800/900 (7.3 sims/s)
+    Pattern: directed  | Strength: 30% | Completed 850/900 (7.1 sims/s)
+    Pattern: directed  | Strength: 40% | Completed 900/900 (6.9 sims/s)
+
+
+=========================================================================================================
+                       EXPERIMENT A: DEGRADATION CURVE SUMMARY (Mean across trials)
+=========================================================================================================
+
+---------------------------------------------------------------------------------------------------------
+  SCENARIO: SCENARIO 1 (SMALL: 5 UAVS, 2 PAYLOADS, 80 TASKS)
+---------------------------------------------------------------------------------------------------------
+
+  [Attack Pattern: RANDOM]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.492  ->  0.560  ->  0.433   |   41.9% ->  44.0% ->  40.5%
+  BDTR         |  0.721  ->  0.738  ->  0.697   |   65.9% ->  65.6% ->  64.6%
+  SROM         |  0.725  ->  0.746  ->  0.665   |   61.0% ->  59.4% ->  54.9%
+  Hungarian (Ours) |  0.691  ->  0.698  ->  0.654   |   62.0% ->  60.9% ->  59.6%
+  SABR         |  0.738  ->  0.749  ->  0.699   |   74.0% ->  73.6% ->  71.5%
+
+  [Attack Pattern: BALANCED]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.542  ->  0.540  ->  0.433   |   42.6% ->  41.9% ->  40.1%
+  BDTR         |  0.799  ->  0.754  ->  0.707   |   66.1% ->  65.5% ->  62.0%
+  SROM         |  0.760  ->  0.743  ->  0.655   |   57.2% ->  61.4% ->  50.7%
+  Hungarian (Ours) |  0.746  ->  0.715  ->  0.664   |   60.5% ->  61.0% ->  57.0%
+  SABR         |  0.801  ->  0.761  ->  0.711   |   73.8% ->  71.8% ->  69.1%
+
+  [Attack Pattern: DIRECTED]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.512  ->  0.478  ->  0.363   |   42.2% ->  41.5% ->  36.6%
+  BDTR         |  0.780  ->  0.739  ->  0.677   |   66.5% ->  65.8% ->  61.1%
+  SROM         |  0.751  ->  0.718  ->  0.693   |   59.6% ->  57.6% ->  50.2%
+  Hungarian (Ours) |  0.738  ->  0.695  ->  0.675   |   60.8% ->  59.5% ->  54.8%
+  SABR         |  0.789  ->  0.744  ->  0.663   |   73.6% ->  74.8% ->  66.6%
+
+---------------------------------------------------------------------------------------------------------
+  SCENARIO: SCENARIO 2 (LARGE: 10 UAVS, 3 PAYLOADS, 120 TASKS)
+---------------------------------------------------------------------------------------------------------
+
+  [Attack Pattern: RANDOM]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.457  ->  0.454  ->  0.446   |   38.2% ->  40.3% ->  39.0%
+  BDTR         |  0.704  ->  0.628  ->  0.608   |   66.8% ->  65.4% ->  62.8%
+  SROM         |  0.666  ->  0.577  ->  0.537   |   55.7% ->  49.2% ->  44.2%
+  Hungarian (Ours) |  0.638  ->  0.579  ->  0.581   |   59.8% ->  60.2% ->  59.9%
+  SABR         |  0.699  ->  0.647  ->  0.643   |   72.4% ->  73.0% ->  72.2%
+
+  [Attack Pattern: BALANCED]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.439  ->  0.425  ->  0.412   |   35.2% ->  36.7% ->  37.2%
+  BDTR         |  0.686  ->  0.650  ->  0.601   |   63.3% ->  62.5% ->  60.3%
+  SROM         |  0.667  ->  0.598  ->  0.519   |   55.0% ->  49.5% ->  41.1%
+  Hungarian (Ours) |  0.625  ->  0.601  ->  0.567   |   58.7% ->  59.0% ->  58.2%
+  SABR         |  0.686  ->  0.660  ->  0.628   |   69.0% ->  70.1% ->  70.5%
+
+  [Attack Pattern: DIRECTED]
+  Method       | CRI: 20% -> 30% -> 40%   | CompRate: 20% -> 30% -> 40%
+  --------------------------------------------------------------------
+  RRAM         |  0.457  ->  0.389  ->  0.412   |   35.1% ->  31.6% ->  27.2%
+  BDTR         |  0.674  ->  0.587  ->  0.591   |   65.4% ->  63.5% ->  58.8%
+  SROM         |  0.637  ->  0.557  ->  0.528   |   55.6% ->  49.3% ->  40.2%
+  Hungarian (Ours) |  0.615  ->  0.554  ->  0.552   |   59.7% ->  58.0% ->  54.1%
+  SABR         |  0.683  ->  0.627  ->  0.620   |   73.3% ->  72.2% ->  67.8%
+
+Degradation curve plots saved to: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\png\attack_degradation_curves.png
+
+Experiment A results successfully saved to:
+  - MAT File: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\mat\attack_analysis_results.mat (includes attackSummaryTable & attackTrialsTable)
+  - Summary CSV: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\csv\attack_summary_metrics.csv (open directly in Excel/Sheets)
+  - Raw Trials CSV: C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\csv\attack_raw_trials.csv
+Total runtime: 130.8s
+
+Wrote C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\png\mc_summary_scorecard.png
+Wrote C:\Users\Prasanna\Documents\MATLAB\SRC_CODE\monte_carlo\results\png\attack_summary_scorecard.png

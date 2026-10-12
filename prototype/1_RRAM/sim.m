@@ -90,7 +90,7 @@ for t = 0:cfg.sim.dt:cfg.sim.tEnd
         end
     end
 
-    [uavs, tasks] = moveFleet(uavs, tasks, t, cfg.sim.dt);
+    [uavs, tasks] = moveFleet(uavs, tasks, t, cfg.sim.dt, cfg);
 
     if visualize
         renderFrame(rs, uavs, tasks, t, events);
@@ -304,47 +304,9 @@ end
 
 %% ======================= MOVEMENT =======================
 
-function [uavs, tasks] = moveFleet(uavs, tasks, t, dt)
-for i = 1:numel(uavs)
-    j = uavs(i).assignedTask;
-    if j == 0
-        if ~isempty(uavs(i).queue)
-            uavs(i).assignedTask = uavs(i).queue(1);
-            j = uavs(i).assignedTask;
-        else
-            continue;
-        end
-    end
-    target = tasks(j).location;
-    p = uavs(i).position;
-    d = norm(target - p);
-    if d > 1e-6
-        step = uavs(i).speed * dt;
-        if step >= d
-            uavs(i).position = target;
-        else
-            uavs(i).position = p + (target - p) / d * step;
-        end
-    end
-    if norm(uavs(i).position - target) < 1e-6
-        if ~isFeasible(tasks(j).requiredCap, uavs(i).capabilities)
-            continue;
-        end
-        if isnan(tasks(j).arrivalTime)
-            tasks(j).arrivalTime = t;
-        end
-        if (t - tasks(j).arrivalTime) >= tasks(j).execTime
-            tasks(j).status = 'complete';
-            tasks(j).completeTime = t;
-            uavs(i).queue = uavs(i).queue(uavs(i).queue ~= j);
-            if ~isempty(uavs(i).queue)
-                uavs(i).assignedTask = uavs(i).queue(1);
-            else
-                uavs(i).assignedTask = 0;
-            end
-        end
-    end
-end
+function [uavs, tasks] = moveFleet(uavs, tasks, t, dt, cfg)
+% Shared step: same flight rule and overload stretch for every method.
+[uavs, tasks] = move_fleet_step(uavs, tasks, t, dt, cfg);
 end
 
 %% ======================= METRICS =======================
