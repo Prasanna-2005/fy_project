@@ -165,9 +165,9 @@ end
 
 try
     hFig = figure('Name', 'Experiment A: Degradation Curves', 'Position', [100, 100, 1200, 700], 'Visible', 'off');
-    methodColors = {[0.2, 0.2, 0.2], [0.85, 0.33, 0.1], [0.0, 0.45, 0.74], [0.47, 0.67, 0.19], [0.49, 0.18, 0.56]};
-    lineStyles   = {'--', '-', '-.', ':', '-'};
-    markers      = {'o', 's', '^', 'd', 'v'};
+    methodColors = {[0.2, 0.2, 0.2], [0.85, 0.33, 0.1], [0.0, 0.45, 0.74], [0.47, 0.67, 0.19], [0.49, 0.18, 0.56], [0.64, 0.16, 0.16]};
+    lineStyles   = {'--', '-', '-.', ':', '-', '--'};
+    markers      = {'o', 's', '^', 'd', 'v', 'p'};
 
     plotIdx = 1;
     for sc = 1:nScenarios

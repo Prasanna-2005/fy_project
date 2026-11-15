@@ -174,6 +174,7 @@ Flight maneuverability (T_fly) and communication latency (τ_comm) are **exclude
 
 ### 2026-10-12 — CARA
 - Added `6_CARA` in `monte_carlo/` and `prototype/`. CARA is Capability-Aware Reallocation. It is a separate method, not a change to SABR. It only moves illegal, newly released, or already-late tasks. A task the aircraft will reach before a 1.05 s command round-trip stays put. An illegal task inside that window is dropped and is not given to another aircraft. A moved task waits out the round-trip, then the receiving aircraft executes it from the start.
+- N = 300, 30% random, common random numbers. Small: CARA completion 79.20%, CRI 0.783, R_task 0.785, R_time 0.782, salvage 0.622. Large: 78.79%, CRI 0.681, R_task 0.776, R_time 0.585, salvage 0.545. SABR on the same run is 70.53% / 0.763 small and 73.73% / 0.663 large. BDTR is 65.53% / 0.762 small and 62.92% / 0.636 large.
 
 ### 2026-10-12 — Fair execution clock
 - A moved task no longer inherits the previous aircraft's execution clock. Completion counts only time the current aircraft spends on station. SABR and Hungarian now clear that clock when they take a task off an aircraft. BDTR, RRAM, and SROM already did. The shared step does the same check for every method.
@@ -406,9 +407,10 @@ Measured on the N = 300 Monte Carlo (30% random payload attack, common random nu
 |---|---|---|---|---|---|---|---|---|
 | BDTR | 65.53% | 0.762 | 0.732 | 0.791 | 62.92% | 0.636 | 0.688 | 0.584 |
 | Hungarian | 60.00% | 0.710 | 0.650 | 0.769 | 60.87% | 0.597 | 0.611 | 0.582 |
-| SABR | **70.53%** | **0.763** | **0.741** | 0.785 | **73.73%** | **0.663** | **0.742** | **0.585** |
+| SABR | 70.53% | 0.763 | 0.741 | 0.785 | 73.73% | 0.663 | 0.742 | 0.585 |
+| CARA | **79.20%** | **0.783** | **0.785** | 0.782 | **78.79%** | **0.681** | **0.776** | **0.585** |
 
-SABR is ahead of BDTR on completion, CRI, and R_task in both scenarios, and on salvage fraction (0.372 vs 0.277 small, 0.411 vs 0.153 large). The one miss is small-scenario R_time (0.785 vs 0.791). Large-scenario R_time is 0.585 vs 0.584.
+CARA leads completion, CRI, and R_task in both scenarios, and salvage (0.622 vs SABR 0.372 small, 0.545 vs 0.411 large). Small-scenario R_time is the miss (0.782 vs BDTR 0.791). SABR remains ahead of BDTR on completion, CRI, and R_task. Its small-scenario R_time is 0.785 vs 0.791. Large-scenario R_time is 0.585 for both SABR and CARA, against BDTR 0.584.
 
 | Idea | In SABR? | What actually moved the metrics |
 |---|---|---|
