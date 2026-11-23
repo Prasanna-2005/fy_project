@@ -1,13 +1,15 @@
-function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
+function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed, timingWindow)
 % GENERATE_ATTACK_EVENTS  Parameterized failure-rate generator.
 %   Replaces the hardcoded 2-event capabilityChanges with a stochastic
-%   attack schedule matching the BDTR paper''s experimental design:
-%     - strength: fraction of total capability-slots to degrade (0.2/0.3/0.4)
+%   attack schedule matching the BDTR paper's experimental design:
+%     - strength: fraction (0.2/0.3/0.4) or integer count (if >= 1) of slots to degrade
 %     - pattern:  'random', 'balanced', or 'directed'
 %     - rngSeed:  integer seed for reproducibility across Monte Carlo runs
+%     - timingWindow: optional 1x2 normalized window [wMin, wMax] (default [0.15, 0.60])
 %
 %   Returns: struct array with fields {uavIndex, capability, changeTime}
 
+    if nargin < 5, timingWindow = []; end
     if nargin < 4, rngSeed = 42; end
     if nargin < 3 || isempty(pattern), pattern = 'random'; end
     if nargin < 2 || isempty(strength), strength = 0.3; end
@@ -27,9 +29,19 @@ function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
     end
     totalSlots = numel(slots);
 
-    % Number of attacks = round(strength * totalSlots), at least 1
-    nAttacks = max(1, round(strength * totalSlots));
-    nAttacks = min(nAttacks, totalSlots); % can''t degrade more than exist
+    % Number of attacks = exact count if strength >= 1, or round(strength * totalSlots)
+    if strength == 0
+        nAttacks = 0;
+    elseif strength >= 1
+        nAttacks = min(round(strength), totalSlots);
+    else
+        nAttacks = max(1, min(round(strength * totalSlots), totalSlots));
+    end
+
+    if nAttacks == 0
+        capChanges = struct('uavIndex', {}, 'capability', {}, 'changeTime', {});
+        return;
+    end
 
     % ---- Select which slots get attacked, based on pattern ----
     switch lower(pattern)
@@ -104,9 +116,17 @@ function capChanges = generate_attack_events(cfg, strength, pattern, rngSeed)
                 'Unknown pattern "%s". Use random/balanced/directed.', pattern);
     end
 
-    % ---- Generate attack times: spread across [15%..60%] of tEnd ----
-    tMin = 0.15 * tEnd;
-    tMax = 0.60 * tEnd;
+    % ---- Generate attack times: spread across timing window ----
+    if ~isempty(timingWindow)
+        tMin = timingWindow(1) * tEnd;
+        tMax = timingWindow(2) * tEnd;
+    elseif isfield(cfg, 'sim') && isfield(cfg.sim, 'attackWindow')
+        tMin = cfg.sim.attackWindow(1) * tEnd;
+        tMax = cfg.sim.attackWindow(2) * tEnd;
+    else
+        tMin = 0.15 * tEnd;
+        tMax = 0.60 * tEnd;
+    end
     attackTimes = sort(tMin + (tMax - tMin) * rand(1, numel(attackIdx)));
     % Round to nearest dt for clean event alignment
     attackTimes = round(attackTimes / cfg.sim.dt) * cfg.sim.dt;

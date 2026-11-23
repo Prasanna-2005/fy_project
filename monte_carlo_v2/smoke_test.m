@@ -1,23 +1,17 @@
-%% SMOKE_TEST  Rapid Developer Sanity-Check (1-Shot Deterministic Run)
+%% SMOKE_TEST  Rapid Developer Sanity-Check & Protocol Invariant Verification
 %
-% Executes a fast, single-iteration headless simulation (~1.5s runtime) across:
+% Executes deterministic sanity checks across:
 %   - All 6 solvers: 1_RRAM, 2_BDTR, 3_SROM, 4_HUNGARIAN, 5_SABR, 6_CARA
 %   - Both Scenarios: Scenario 1 (Small: 5 UAVs, 80 tasks), Scenario 2 (Large: 10 UAVs, 120 tasks)
-%
-% PURPOSE:
-%   Use this script to rapidly verify that all solver scripts, common configs,
-%   and metric evaluators run cleanly without syntax errors or runtime crashes
-%   after code modifications.
-%
-% NOTE FOR EXPERIMENTAL DATA:
-%   This is a 1-shot developer sanity-check only.
-%   For published, research-grade experimental data and plots, run:
-%     1. monte_carlo/run_attack_analysis.m (Parametric attack degradation curves)
-%     2. monte_carlo/run_monte_carlo.m     (300-run Monte Carlo statistical benchmark)
+%   - Under paper_aligned profile:
+%     1. Confirms no travel delay (includeTravel = false)
+%     2. Confirms failedRate = 0 by design (infinite deadlines)
+%     3. Confirms determinism (exact same seed produces identical results twice)
 
 clear; clc; close all;
 
 baseDir = fileparts(mfilename('fullpath'));
+addpath(baseDir);
 addpath(fullfile(baseDir, 'common'));
 
 warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
@@ -29,7 +23,7 @@ cases = {
     '3_SROM',          'srom',     'SROM (Baseline)';
     '4_HUNGARIAN',     'reactive', 'Hungarian (Ours)';
     '5_SABR',          'sabr',     'SABR';
-    '6_CARA',          'cara',      'CARA'
+    '6_CARA',          'cara',     'CARA'
 };
 
 scenarios = {
@@ -40,17 +34,20 @@ scenarios = {
 results = struct();
 
 fprintf('\n=========================================================================================================================\n');
-fprintf('                           MULTI-UAV BASELINE METHODS SANITY CHECK (RAPID SMOKE TEST)\n');
+fprintf('                           MULTI-UAV BASELINE METHODS SANITY CHECK & DETERMINISM TEST\n');
+fprintf('                                Profile: paper_aligned (No travel, failedRate = 0)\n');
 fprintf('=========================================================================================================================\n');
+
+fixedSeed = 42;
 
 for sc = 1:size(scenarios, 1)
     scName  = scenarios{sc, 1};
     scLabel = scenarios{sc, 2};
 
     fprintf('\n── %s ──\n', upper(scLabel));
-    fprintf('%-24s %-25s %8s %8s %8s %10s %8s %8s %8s %10s\n', ...
-        'Directory', 'Algorithm', 'R_task', 'R_time', 'CRI', 'ThrptRecov', 'FeasRate', 'CompRate', 'FailRate', 'MeanTime(s)');
-    fprintf('%s\n', repmat('-', 1, 121));
+    fprintf('%-16s %-20s %8s %8s %8s %8s %8s %10s %10s\n', ...
+        'Directory', 'Algorithm', 'R_task', 'R_time', 'CRI', 'CompRate', 'FailRate', 'NoTravel', 'DetermTest');
+    fprintf('%s\n', repmat('-', 1, 110));
 
     for c = 1:size(cases, 1)
         dirName = cases{c, 1};
@@ -58,20 +55,53 @@ for sc = 1:size(scenarios, 1)
         label   = cases{c, 3};
 
         cd(fullfile(baseDir, dirName));
-        cfg = common_config(strat, scName);
-        cfg.sim.visualize = false;
+        clear sim;
 
-        res = sim(cfg, strat);
-        m = res.metrics;
+        % --- Run 1 ---
+        cfg1 = apply_v2_profile(common_config(strat, scName, fixedSeed), 'paper_aligned');
+        cfg1.sim.visualize = false;
+        cfg1.capabilityChanges = generate_attack_events(cfg1, 0.30, 'random', fixedSeed);
+
+        % Invariant 1: includeTravel must be false in paper_aligned
+        assert(~cfg1.sim.includeTravel, 'Invariant violation: includeTravel is not false in paper_aligned');
+
+        res1 = sim(cfg1, strat);
+        m1 = res1.metrics;
+
+        % Invariant 2: failedRate must be exactly 0 for reproduction methods (infinite deadlines)
+        if ~strcmp(strat, 'cara')
+            assert(m1.failedRate == 0, 'Invariant violation: failedRate is %f (expected 0.0 for %s)', m1.failedRate, label);
+        end
+
+        % --- Run 2: Exact same seed to verify determinism ---
+        clear sim;
+        cfg2 = apply_v2_profile(common_config(strat, scName, fixedSeed), 'paper_aligned');
+        cfg2.sim.visualize = false;
+        cfg2.capabilityChanges = generate_attack_events(cfg2, 0.30, 'random', fixedSeed);
+
+        res2 = sim(cfg2, strat);
+        m2 = res2.metrics;
+
+        % Invariant 3: Determinism check (Run 1 == Run 2)
+        diffComp = abs(m1.completionRate - m2.completionRate);
+        diffCRI  = abs(m1.CRI - m2.CRI);
+        diffRtask = abs(m1.R_task - m2.R_task);
+        diffRtime = abs(m1.R_time - m2.R_time);
+        isDeterministic = (diffComp < 1e-12) && (diffCRI < 1e-12) && (diffRtask < 1e-12) && (diffRtime < 1e-12);
+        assert(isDeterministic, 'Invariant violation: Non-deterministic execution detected between Run 1 and Run 2');
+
         fieldTag = sprintf('%s_%s', matlab.lang.makeValidName(dirName), scName);
-        results.(fieldTag) = res;
+        results.(fieldTag) = res1;
 
-        fprintf('%-24s %-25s %8.3f %8.3f %8.3f %10.3f %7.1f%% %7.1f%% %7.1f%% %10.1f\n', ...
-            dirName, label, m.R_task, m.R_time, m.CRI, m.throughputRecovery, ...
-            m.feasibilityRate*100, m.completionRate*100, m.failedRate*100, m.meanCompletionTime);
+        travelStr = 'PASS (false)';
+        determStr = 'PASS (exact)';
+
+        fprintf('%-16s %-20s %8.3f %8.3f %8.3f %7.1f%% %7.1f%% %10s %10s\n', ...
+            dirName, label, m1.R_task, m1.R_time, m1.CRI, ...
+            m1.completionRate*100, m1.failedRate*100, travelStr, determStr);
     end
 end
 
-fprintf('\n%s\n', repmat('=', 1, 121));
-fprintf('[PASS] Smoke test completed successfully across all 6 algorithms and 2 scenarios.\n\n');
+fprintf('\n%s\n', repmat('=', 1, 110));
+fprintf('[PASS] All smoke tests and protocol invariants passed successfully across all 6 algorithms.\n\n');
 cd(baseDir);
