@@ -9,10 +9,9 @@ addpath(baseDir);
 addpath(fullfile(baseDir, 'common'));
 
 if nargin < 1 || isempty(matFile)
-    matFile = fullfile(baseDir, 'results', 'mat', 'bdtr_comparison.mat');
+    matFile = resultsLocate('mat', 'bdtr_comparison.mat');
     if ~exist(matFile, 'file')
-        % Fallback to reproduction_gap.mat if bdtr_comparison.mat is not yet saved
-        fallbackMat = fullfile(baseDir, 'results', 'mat', 'reproduction_gap.mat');
+        fallbackMat = resultsLocate('mat', 'reproduction_gap.mat');
         if exist(fallbackMat, 'file')
             matFile = fallbackMat;
         else
@@ -209,11 +208,44 @@ annotation(hFig, 'textbox', [0.52, 0.08, 0.45, 0.08], ...
     'EdgeColor', [0.5 0.8 0.5], 'HorizontalAlignment', 'center');
 
 % Save output PNG
-pngDir = fullfile(baseDir, 'results', 'png');
-if ~exist(pngDir, 'dir'), mkdir(pngDir); end
+pngDir = resultsPaths().png;
 outPng = fullfile(pngDir, 'bdtr_before_vs_exact_paper.png');
 exportgraphics(hFig, outPng, 'Resolution', 300);
 close(hFig);
 
 fprintf('Scorecard saved to: %s\n', outPng);
+end
+
+function p = resultsPaths()
+    thisDir = fileparts(mfilename('fullpath'));
+    p.root = fullfile(thisDir, 'results');
+    p.png  = fullfile(p.root, 'png');
+    p.csv  = fullfile(p.root, 'csv');
+    p.mat  = fullfile(p.root, 'mat');
+    p.log  = fullfile(p.root, 'log');
+
+    dirs = {p.root, p.png, p.csv, p.mat, p.log};
+    for i = 1:numel(dirs)
+        if ~exist(dirs{i}, 'dir')
+            mkdir(dirs{i});
+        end
+    end
+end
+
+function fpath = resultsLocate(kind, name)
+    p = resultsPaths();
+    if ~isfield(p, kind)
+        error('resultsLocate:badKind', 'Unknown results kind "%s".', kind);
+    end
+    nested = fullfile(p.(kind), name);
+    if exist(nested, 'file')
+        fpath = nested;
+        return;
+    end
+    old = fullfile(p.root, name);
+    if exist(old, 'file')
+        fpath = old;
+        return;
+    end
+    fpath = nested;
 end

@@ -17,18 +17,22 @@ code/
 ├── monte_carlo_rca/        ← BDTR Reproduction & Root Cause Analysis Suite
 │   ├── BDTR_BEFORE_VS_EXACT_PAPER_DIFF.md ← Detailed analysis of Before vs Exact Paper
 │   ├── REPRODUCTION_PROTOCOL_SPEC.md ← Formal reproduction protocol & invariant spec
-│   ├── test_bdtr_verification.m      ← Hand-built step-by-step verification of BDTR
-│   ├── smoke_test.m                  ← Rapid sanity-check & determinism verification
+│   ├── smoke_test.m                  ← Sanity check, invariants & Algorithm 1 unit tests
+│   ├── run_bdtr_attack_calibration.m ← Attack calibration sweep & held-out validation
 │   ├── run_bdtr_comparison.m         ← Full 300-run benchmark (Exact Paper vs Before)
 │   ├── plot_bdtr_comparison.m        ← 4-panel scorecard visualizer
-│   ├── inspect_results.m             ← Summary table viewer
-│   ├── run_bdtr_attack_sensitivity.m ← Attack calibration sweep across counts/patterns/windows
-│   ├── validate_calibrated_attacks.m ← Validation of attack settings on held-out seeds
-│   ├── 2_BDTR/                       ← BDTR (Zeng et al. 2026 verified extraction)
+│   ├── BDTR/                         ← BDTR (Zeng et al. 2026 verified extraction)
 │   ├── common/                       ← Shared config, metrics, attack generators, motion
 │   └── results/                      ← CSVs, MAT archives, and PNG scorecard
 │
 ├── monte_carlo/            ← Legacy Headless Experimental Suite (all 6 methods)
+│   ├── smoke_test.m                  ← Rapid 1-shot sanity check
+│   ├── run_attack_analysis.m         ← Parametric attack sweep
+│   ├── run_monte_carlo.m             ← Full 300-run Monte Carlo benchmark
+│   ├── plot_summary_scorecards.m     ← Summary scorecard visualizer
+│   ├── 1_RRAM/ ... 6_CARA/           ← Per-method directories
+│   ├── common/                       ← Shared config & motion
+│   └── results/                      ← CSVs, MAT archives, and PNG scorecards
 ├── visual_simulation/      ← Visual Prototype (GCS 3D Animation)
 └── PAPERS/                 ← Source literature PDFs (BDTR, RRAM, SROM)
 ```

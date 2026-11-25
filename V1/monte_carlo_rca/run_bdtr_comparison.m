@@ -25,7 +25,7 @@ function run_bdtr_comparison(nRuns, usePrecomputed)
     baseDir = fileparts(mfilename('fullpath'));
     addpath(baseDir);
     addpath(fullfile(baseDir, 'common'));
-    addpath(fullfile(baseDir, '2_BDTR'));
+    addpath(fullfile(baseDir, 'BDTR'));
 
     warnState = warning('off', 'MATLAB:dispatcher:nameConflict');
     cleanupWarn = onCleanup(@() warning(warnState));
@@ -82,7 +82,7 @@ function run_bdtr_comparison(nRuns, usePrecomputed)
             end
         end
 
-        cd(fullfile(baseDir, '2_BDTR'));
+        cd(fullfile(baseDir, 'BDTR'));
         clear sim;
 
         tic;

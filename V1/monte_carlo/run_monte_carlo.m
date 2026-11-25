@@ -218,7 +218,7 @@ try
         plotIdx = plotIdx + 2;
     end
 
-    figPath = results_file('png', 'mc_distributions.png');
+    figPath = resultsFile(baseDir, 'png', 'mc_distributions.png');
     saveas(hFig, figPath);
     close(hFig);
     fprintf('\nMonte Carlo distribution plots successfully saved to: %s\n', figPath);
@@ -281,8 +281,8 @@ trialVarNames = [{'Scenario', 'Algorithm', 'RunIndex'}, metricFields];
 mcTrialsTable = cell2table(trialRows, 'VariableNames', trialVarNames);
 
 % ---- 3. Export CSV Files for instant opening in Excel / VS Code ----
-summaryCsvPath = results_file('csv', 'mc_summary_metrics.csv');
-trialsCsvPath  = results_file('csv', 'mc_raw_trials.csv');
+summaryCsvPath = resultsFile(baseDir, 'csv', 'mc_summary_metrics.csv');
+trialsCsvPath  = resultsFile(baseDir, 'csv', 'mc_raw_trials.csv');
 writetable(mcSummaryTable, summaryCsvPath);
 writetable(mcTrialsTable, trialsCsvPath);
 
@@ -299,7 +299,7 @@ mcDistributionResults.elapsed         = elapsed;
 mcDistributionResults.summaryTable    = mcSummaryTable;
 mcDistributionResults.trialsTable     = mcTrialsTable;
 
-savePath = results_file('mat', 'mc_distribution_results.mat');
+savePath = resultsFile(baseDir, 'mat', 'mc_distribution_results.mat');
 save(savePath, 'mcDistributionResults', 'mcSummaryTable', 'mcTrialsTable');
 
 fprintf('\nMonte Carlo distribution results successfully saved to:\n');
@@ -307,3 +307,11 @@ fprintf('  - MAT File: %s (includes mcSummaryTable & mcTrialsTable)\n', savePath
 fprintf('  - Summary CSV: %s (open directly in Excel/Sheets)\n', summaryCsvPath);
 fprintf('  - Raw Trials CSV: %s\n', trialsCsvPath);
 fprintf('Total runtime: %.1f seconds\n\n', elapsed);
+
+function fpath = resultsFile(baseDir, kind, name)
+    subDir = fullfile(baseDir, 'results', kind);
+    if ~exist(subDir, 'dir')
+        mkdir(subDir);
+    end
+    fpath = fullfile(subDir, name);
+end

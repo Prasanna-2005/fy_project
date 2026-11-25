@@ -201,7 +201,7 @@ try
         plotIdx = plotIdx + 2;
     end
 
-    figPath = results_file('png', 'attack_degradation_curves.png');
+    figPath = resultsFile(baseDir, 'png', 'attack_degradation_curves.png');
     saveas(hFig, figPath);
     close(hFig);
     fprintf('\nDegradation curve plots saved to: %s\n', figPath);
@@ -263,8 +263,8 @@ trialVarNames = [{'Scenario', 'Pattern', 'Strength_pct', 'Algorithm', 'TrialInde
 attackTrialsTable = cell2table(attackTrialRows, 'VariableNames', trialVarNames);
 
 % ---- 3. Export CSV Files ----
-attackCsvPath       = results_file('csv', 'attack_summary_metrics.csv');
-attackTrialsCsvPath = results_file('csv', 'attack_raw_trials.csv');
+attackCsvPath       = resultsFile(baseDir, 'csv', 'attack_summary_metrics.csv');
+attackTrialsCsvPath = resultsFile(baseDir, 'csv', 'attack_raw_trials.csv');
 writetable(attackSummaryTable, attackCsvPath);
 writetable(attackTrialsTable, attackTrialsCsvPath);
 
@@ -281,7 +281,7 @@ attackResults.elapsed      = elapsed;
 attackResults.summaryTable = attackSummaryTable;
 attackResults.trialsTable  = attackTrialsTable;
 
-matPath = results_file('mat', 'attack_analysis_results.mat');
+matPath = resultsFile(baseDir, 'mat', 'attack_analysis_results.mat');
 save(matPath, 'attackResults', 'attackSummaryTable', 'attackTrialsTable');
 
 fprintf('\nExperiment A results successfully saved to:\n');
@@ -289,3 +289,11 @@ fprintf('  - MAT File: %s (includes attackSummaryTable & attackTrialsTable)\n', 
 fprintf('  - Summary CSV: %s (open directly in Excel/Sheets)\n', attackCsvPath);
 fprintf('  - Raw Trials CSV: %s\n', attackTrialsCsvPath);
 fprintf('Total runtime: %.1fs\n\n', elapsed);
+
+function fpath = resultsFile(baseDir, kind, name)
+    subDir = fullfile(baseDir, 'results', kind);
+    if ~exist(subDir, 'dir')
+        mkdir(subDir);
+    end
+    fpath = fullfile(subDir, name);
+end

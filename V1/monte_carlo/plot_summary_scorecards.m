@@ -17,14 +17,14 @@ function plot_summary_scorecards()
         0.49, 0.18, 0.56; ...
         0.64, 0.16, 0.16];
 
-    mcCsv = results_locate('csv', 'mc_summary_metrics.csv');
-    atkCsv = results_locate('csv', 'attack_summary_metrics.csv');
+    mcCsv = resultsLocate('csv', 'mc_summary_metrics.csv');
+    atkCsv = resultsLocate('csv', 'attack_summary_metrics.csv');
     if ~exist(mcCsv, 'file') || ~exist(atkCsv, 'file')
         error('plot_summary_scorecards:noCsv', ...
             'Need mc_summary_metrics.csv and attack_summary_metrics.csv in results/csv/.');
     end
 
-    pngDir = results_paths().png;
+    pngDir = resultsPaths().png;
     plotMonteCarloScorecard(mcCsv, pngDir, methodOrder);
     plotAttackScorecard(atkCsv, pngDir, methodOrder, methodColors);
 end
@@ -284,4 +284,38 @@ function exportScorecard(hFig, figPath)
     end
     close(hFig);
     fprintf('Wrote %s\n', figPath);
+end
+
+function p = resultsPaths()
+    thisDir = fileparts(mfilename('fullpath'));
+    p.root = fullfile(thisDir, 'results');
+    p.png  = fullfile(p.root, 'png');
+    p.csv  = fullfile(p.root, 'csv');
+    p.mat  = fullfile(p.root, 'mat');
+    p.log  = fullfile(p.root, 'log');
+
+    dirs = {p.root, p.png, p.csv, p.mat, p.log};
+    for i = 1:numel(dirs)
+        if ~exist(dirs{i}, 'dir')
+            mkdir(dirs{i});
+        end
+    end
+end
+
+function fpath = resultsLocate(kind, name)
+    p = resultsPaths();
+    if ~isfield(p, kind)
+        error('resultsLocate:badKind', 'Unknown results kind "%s".', kind);
+    end
+    nested = fullfile(p.(kind), name);
+    if exist(nested, 'file')
+        fpath = nested;
+        return;
+    end
+    old = fullfile(p.root, name);
+    if exist(old, 'file')
+        fpath = old;
+        return;
+    end
+    fpath = nested;
 end
